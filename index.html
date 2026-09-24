@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EncomiendasBus – Sistema de Transporte de Carga</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Carga opcional de configuración local aislada (protegida por .gitignore, fuera del código) -->
+<script src="supabase.config.js"></script>
+<style>
+  :root {
+    --bg:#0b0e1a;--bg2:#111525;--bg3:#181d30;--card:#1c2235;--card2:#222840;
+    --border:#2a3050;--accent:#4f7ef8;--accent2:#7c5ef8;--accent3:#00d4aa;
+    --gold:#f5a623;--danger:#f05c5c;--warn:#f5a623;--ok:#3dd68c;
+    --text:#e8ecf4;--text2:#8892b0;--text3:#4a5470;
+    --radius:14px;--radius-sm:8px;--shadow:0 8px 32px rgba(0,0,0,.45);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{font-size:15px}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+  /* ── LOGIN OVERLAY ── */
+  #login-overlay{position:fixed;inset:0;background:var(--bg);z-index:900;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .4s}
+  #login-overlay.hidden{opacity:0;pointer-events:none}
+  .login-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:40px 36px;width:100%;max-width:400px;box-shadow:var(--shadow)}
+  .login-logo{text-align:center;margin-bottom:28px}
+  .login-logo h1{font-size:1.4rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .login-logo p{color:var(--text2);font-size:.82rem;margin-top:4px}
+  .login-error{margin-top:12px;padding:10px 14px;background:rgba(240,92,92,.12);border:1px solid rgba(240,92,92,.3);border-radius:var(--radius-sm);font-size:.8rem;color:var(--danger);display:none}
+  .login-card .form-group{margin-bottom:16px}
+  .login-card .btn{width:100%;justify-content:center;margin-top:4px}
+  .login-demo-btn{width:100%;margin-top:10px;justify-content:center;font-size:.8rem}
+  .login-sep{text-align:center;font-size:.75rem;color:var(--text3);margin:14px 0}
+
+  /* ── CONFIG BANNER ── */
+  #config-banner{background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.3);border-radius:var(--radius-sm);padding:12px 18px;font-size:.82rem;color:var(--warn);display:none;align-items:center;gap:12px;margin-bottom:24px}
+  #config-banner code{background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px;font-size:.75rem}
+
+  /* ── SIDEBAR ── */
+  #sidebar{position:fixed;left:0;top:0;height:100%;width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:transform .3s}
+  .logo{padding:22px 20px 18px;border-bottom:1px solid var(--border)}
+  .logo h1{font-size:1rem;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .logo p{font-size:.68rem;color:var(--text2);margin-top:2px}
+  nav{flex:1;padding:14px 10px;display:flex;flex-direction:column;gap:4px}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:var(--radius-sm);cursor:pointer;font-size:.85rem;font-weight:500;color:var(--text2);transition:all .2s;border:none;background:none;text-align:left;width:100%}
+  .nav-item:hover{color:var(--text);background:var(--card)}
+  .nav-item.active{color:var(--accent);background:rgba(79,126,248,.12)}
+  .nav-item .icon{font-size:1.05rem;width:20px;text-align:center}
+  .sidebar-user{padding:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+  .user-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0}
+  .user-info{flex:1;min-width:0}
+  .user-name{font-size:.78rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .user-role{font-size:.65rem;color:var(--text2)}
+  .btn-logout{background:none;border:none;color:var(--text3);cursor:pointer;font-size:.9rem;padding:4px;border-radius:4px;flex-shrink:0}
+  .btn-logout:hover{color:var(--danger)}
+  .mode-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:.62rem;font-weight:700;margin-top:4px}
+  .mode-badge.demo{background:rgba(245,166,35,.15);color:var(--warn)}
+  .mode-badge.live{background:rgba(61,214,140,.15);color:var(--ok)}
+  #hamburger{display:none;position:fixed;top:14px;left:14px;z-index:200;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);width:40px;height:40px;cursor:pointer;font-size:1.2rem;color:var(--text)}
+
+  /* ── MAIN ── */
+  #main{margin-left:230px;min-height:100vh;padding:28px 26px}
+  .view{display:none;animation:fadeIn .3s}
+  .view.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .page-header{margin-bottom:26px}
+  .page-header h2{font-size:1.5rem;font-weight:800;letter-spacing:-.4px}
+  .page-header p{color:var(--text2);font-size:.82rem;margin-top:4px}
+
+  /* ── LOADING ── */
+  .loader{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .skeleton{background:linear-gradient(90deg,var(--card),var(--card2),var(--card));background-size:200%;animation:shimmer 1.4s infinite;border-radius:var(--radius-sm);height:20px}
+  @keyframes shimmer{0%{background-position:200%}100%{background-position:-200%}}
+  .loading-overlay{position:absolute;inset:0;background:rgba(11,14,26,.6);display:flex;align-items:center;justify-content:center;border-radius:var(--radius);z-index:10;backdrop-filter:blur(2px)}
+
+  /* ── KPI ── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:24px}
+  .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:5px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+  .kpi-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:var(--radius) var(--radius) 0 0}
+  .kpi-card.blue::before{background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .kpi-card.green::before{background:linear-gradient(90deg,var(--ok),var(--accent3))}
+  .kpi-card.warn::before{background:linear-gradient(90deg,var(--warn),#f0a040)}
+  .kpi-card.red::before{background:linear-gradient(90deg,var(--danger),#c0392b)}
+  .kpi-label{font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--text2)}
+  .kpi-value{font-size:1.9rem;font-weight:800;letter-spacing:-1px}
+  .kpi-sub{font-size:.72rem;color:var(--text2)}
+  .kpi-icon{position:absolute;top:16px;right:16px;font-size:1.7rem;opacity:.12}
+
+  /* ── BUSES ── */
+  .section-title{font-size:.9rem;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .buses-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin-bottom:24px}
+  .bus-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:7px}
+  .bus-card-top{display:flex;align-items:center;justify-content:space-between}
+  .bus-name{font-weight:700;font-size:.88rem}
+  .bus-route{font-size:.7rem;color:var(--text2)}
+  .capacity-bar{height:6px;border-radius:99px;background:var(--bg3);overflow:hidden}
+  .capacity-fill{height:100%;border-radius:99px;transition:width .5s}
+  .capacity-fill.ok{background:linear-gradient(90deg,var(--ok),var(--accent3))}
+  .capacity-fill.warn{background:linear-gradient(90deg,var(--warn),#e67e22)}
+  .capacity-fill.full{background:linear-gradient(90deg,var(--danger),#c0392b)}
+  .capacity-label{font-size:.7rem;color:var(--text2);display:flex;justify-content:space-between}
+
+  /* ── CARDS / TABLES ── */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+  .card-header{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+  .card-header h3{font-size:.88rem;font-weight:700}
+  table{width:100%;border-collapse:collapse}
+  thead th{padding:9px 14px;font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);text-align:left;background:var(--bg3)}
+  tbody tr{border-top:1px solid var(--border);transition:background .15s}
+  tbody tr:hover{background:var(--card2)}
+  td{padding:11px 14px;font-size:.8rem}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;font-size:.68rem;font-weight:600;letter-spacing:.3px;white-space:nowrap}
+  .badge.registrado{background:rgba(139,148,158,.15);color:#8b949e}
+  .badge.transito{background:rgba(79,126,248,.18);color:var(--accent)}
+  .badge.terminal{background:rgba(245,166,35,.18);color:var(--gold)}
+  .badge.entregado{background:rgba(61,214,140,.18);color:var(--ok)}
+  .tracking-code{font-family:monospace;font-size:.76rem;background:var(--bg3);padding:2px 6px;border-radius:4px;color:var(--accent2);font-weight:700}
+
+  /* ── FORMS ── */
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .form-group{display:flex;flex-direction:column;gap:5px}
+  label{font-size:.72rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px}
+  input,select{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:9px 12px;font-size:.83rem;font-family:inherit;transition:border-color .2s,box-shadow .2s;outline:none;width:100%}
+  input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,126,248,.15)}
+  input::placeholder{color:var(--text3)}
+  select option{background:var(--bg2)}
+  input[readonly]{opacity:.6;cursor:default}
+  .section-sep{border:none;border-top:1px solid var(--border);margin:20px 0}
+  .form-section-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--accent);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .form-section-label::before{content:'';flex:1;height:1px;background:var(--border)}
+  .field-hint{font-size:.68rem;color:var(--text3);margin-top:2px}
+  .input-icon-wrap{position:relative}
+  .input-icon-wrap input{padding-right:36px}
+  .input-icon-wrap .icon-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text2);cursor:pointer;font-size:.85rem;padding:2px}
+  .input-icon-wrap .icon-btn:hover{color:var(--accent)}
+
+  /* ── COST BOX ── */
+  .cost-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:7px}
+  .cost-row{display:flex;justify-content:space-between;font-size:.8rem;color:var(--text2)}
+  .cost-row.total{border-top:1px solid var(--border);padding-top:9px;margin-top:3px;font-size:1rem;font-weight:800;color:var(--text)}
+  .cost-row.total span:last-child{color:var(--ok)}
+  .cargo-warning{background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.35);border-radius:var(--radius-sm);padding:9px 13px;font-size:.78rem;color:var(--warn);display:none;margin-top:10px}
+  .cargo-error{background:rgba(240,92,92,.1);border:1px solid rgba(240,92,92,.35);border-radius:var(--radius-sm);padding:9px 13px;font-size:.78rem;color:var(--danger);display:none;margin-top:6px}
+
+  /* ── BUTTONS ── */
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:var(--radius-sm);font-size:.83rem;font-weight:600;cursor:pointer;border:none;transition:all .2s;font-family:inherit}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;box-shadow:0 4px 16px rgba(79,126,248,.3)}
+  .btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 22px rgba(79,126,248,.45)}
+  .btn-secondary{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+  .btn-secondary:hover:not(:disabled){background:var(--border)}
+  .btn-sm{padding:5px 12px;font-size:.75rem}
+  .btn-success{background:linear-gradient(135deg,var(--ok),var(--accent3));color:#0b1e12}
+  .btn-warn{background:var(--warn);color:#1a0f00}
+  .btn-group{display:flex;gap:8px;flex-wrap:wrap}
+
+  /* ── TRACKING ── */
+  .search-bar{display:flex;gap:10px;margin-bottom:18px}
+  .search-bar input{flex:1}
+  .tracking-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px;margin-bottom:16px;display:none}
+  .tracking-card.show{display:block;animation:fadeIn .3s}
+  .tracking-header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+  .tracking-meta p{font-size:.78rem;color:var(--text2);margin-top:2px}
+  .stepper{display:flex;gap:0;margin:18px 0}
+  .step{flex:1;display:flex;flex-direction:column;align-items:center;position:relative}
+  .step::before{content:'';position:absolute;top:13px;left:50%;right:-50%;height:2px;background:var(--border);z-index:0}
+  .step:last-child::before{display:none}
+  .step-dot{width:26px;height:26px;border-radius:50%;background:var(--bg3);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.68rem;z-index:1;margin-bottom:5px}
+  .step.done .step-dot{background:var(--ok);border-color:var(--ok);color:#fff}
+  .step.current .step-dot{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 0 4px rgba(79,126,248,.22)}
+  .step.done::before{background:var(--ok)}
+  .step-label{font-size:.65rem;color:var(--text2);text-align:center;font-weight:500}
+  .step.done .step-label,.step.current .step-label{color:var(--text);font-weight:600}
+  .tracking-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+  .tracking-details-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px}
+  .detail-item label{font-size:.65rem;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px}
+  .detail-item p{font-size:.82rem;font-weight:500}
+
+  /* ── FILTER BAR ── */
+  .filter-bar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .filter-bar input{flex:1;min-width:180px}
+  .filter-bar select{min-width:150px}
+
+  /* ── MODAL ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1000;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s;backdrop-filter:blur(3px)}
+  .modal-overlay.show{opacity:1;pointer-events:all}
+  .modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:26px;width:100%;max-width:420px;box-shadow:var(--shadow);transform:scale(.95);transition:transform .25s;position:relative;z-index:1001}
+  .modal-overlay.show .modal{transform:scale(1)}
+  .modal h3{font-size:1rem;font-weight:700;margin-bottom:7px}
+  .modal p{font-size:.82rem;color:var(--text2);margin-bottom:16px}
+  .modal .form-group{margin-bottom:14px}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end}
+
+  /* ── TOAST ── */
+  #toast-container{position:fixed;bottom:22px;right:22px;z-index:1200;display:flex;flex-direction:column;gap:8px}
+  .toast{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 16px;font-size:.8rem;font-weight:500;min-width:250px;box-shadow:var(--shadow);animation:slideIn .3s forwards;display:flex;align-items:center;gap:8px}
+  .toast.success{border-left:3px solid var(--ok)}
+  .toast.error{border-left:3px solid var(--danger)}
+  .toast.warn{border-left:3px solid var(--warn)}
+  .toast.info{border-left:3px solid var(--accent)}
+  @keyframes slideIn{from{transform:translateX(60px);opacity:0}to{transform:translateX(0);opacity:1}}
+  @keyframes slideOut{to{transform:translateX(80px);opacity:0}}
+
+  /* ── EMPTY / REALTIME ── */
+  .empty-state{text-align:center;padding:44px 20px;color:var(--text2)}
+  .empty-state .icon{font-size:2.8rem;margin-bottom:10px;opacity:.35}
+  .empty-state p{font-size:.82rem}
+  .realtime-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:768px){
+    #sidebar{transform:translateX(-100%)}
+    #sidebar.open{transform:translateX(0)}
+    #hamburger{display:flex;align-items:center;justify-content:center}
+    #main{margin-left:0;padding:16px;padding-top:60px}
+    .kpi-grid{grid-template-columns:repeat(2,1fr)}
+    .stepper{flex-direction:column;align-items:flex-start;gap:8px}
+    .step::before{display:none}
+  }
+  ::-webkit-scrollbar{width:5px}
+  ::-webkit-scrollbar-track{background:var(--bg)}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN OVERLAY ══ -->
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <h1>&#x1F68C; EncomiendasBus</h1>
+      <p>Sistema de Gesti&#xF3;n de Encomiendas</p>
+    </div>
+    <div class="form-group"><label>Correo electr&#xF3;nico</label><input id="login-email" type="email" placeholder="operador@empresa.com" autocomplete="email"></div>
+    <div class="form-group"><label>Contrase&#xF1;a</label><input id="login-password" type="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Iniciar Sesi&#xF3;n</button>
+    <div class="login-sep">&#xF7; o &#xF7;</div>
+    <button class="btn btn-secondary login-demo-btn" onclick="enterDemoMode()">&#x1F9EA; Continuar en Modo Demo</button>
+    <button class="btn btn-secondary" style="width:100%;margin-top:8px;justify-content:center;font-size:.78rem;" onclick="openConfigModal()">&#x2699;&#xFE0F; Configurar Conexi&#xF3;n Supabase</button>
+    <div id="login-error" class="login-error"></div>
+  </div>
+</div>
+
+<button id="hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">&#9776;</button>
+
+<!-- ══ SIDEBAR ══ -->
+<div id="sidebar">
+  <div class="logo">
+    <h1>&#x1F68C; EncomiendasBus</h1>
+    <p>Sistema de Gesti&#xF3;n de Carga</p>
+  </div>
+  <nav>
+    <button class="nav-item active" onclick="navigate('dashboard',this)"><span class="icon">&#x1F4CA;</span> Dashboard</button>
+    <button class="nav-item" onclick="navigate('registro',this)"><span class="icon">&#x1F4E6;</span> Registrar Encomienda</button>
+    <button class="nav-item" onclick="navigate('seguimiento',this)"><span class="icon">&#x1F50D;</span> Seguimiento</button>
+    <button class="nav-item" onclick="navigate('tabla',this)"><span class="icon">&#x1F4CB;</span> Tabla General</button>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="user-avatar">?</div>
+    <div class="user-info">
+      <div class="user-name" id="user-name">Cargando...</div>
+      <div class="user-role" id="user-role">---</div>
+      <span class="mode-badge demo" id="mode-badge" style="display:none">DEMO</span>
+    </div>
+    <button class="btn-logout" onclick="openConfigModal()" title="Configuraci&#xF3;n de Conexi&#xF3;n" style="margin-right:2px">&#x2699;&#xFE0F;</button>
+    <button class="btn-logout" onclick="doLogout()" title="Cerrar sesi&#xF3;n">&#x23FB;</button>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<main id="main">
+  <!-- ══ CONFIG BANNER ══ -->
+  <div id="config-banner">
+    <span>&#x26A0;&#xFE0F; Supabase no conectado &mdash; ingresa tus credenciales en <code>supabase.config.js</code> o haz clic aqu&#xED;:</span>
+    <button class="btn btn-sm btn-secondary" onclick="openConfigModal()" style="padding:4px 10px;font-size:.74rem;">&#x2699;&#xFE0F; Conectar</button>
+    <span class="mode-badge demo" style="margin-left:auto">DEMO</span>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="view-dashboard" class="view active">
+    <div class="page-header">
+      <h2>Dashboard <span class="realtime-dot" id="rt-dot" style="display:none;margin-left:6px"></span></h2>
+      <p>Resumen general del sistema de encomiendas</p>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi-card blue"><span class="kpi-label">Total Encomiendas</span><span class="kpi-value" id="kpi-total">&#x2013;</span><span class="kpi-sub">Registros hist&#xF3;ricos</span><span class="kpi-icon">&#x1F4E6;</span></div>
+      <div class="kpi-card warn"><span class="kpi-label">En Tr&#xE1;nsito</span><span class="kpi-value" id="kpi-transito">&#x2013;</span><span class="kpi-sub">En camino al destino</span><span class="kpi-icon">&#x1F68C;</span></div>
+      <div class="kpi-card green"><span class="kpi-label">Entregadas</span><span class="kpi-value" id="kpi-entregadas">&#x2013;</span><span class="kpi-sub">Completadas</span><span class="kpi-icon">&#x2705;</span></div>
+      <div class="kpi-card red"><span class="kpi-label">Recaudaci&#xF3;n</span><span class="kpi-value" id="kpi-recaudacion">&#x2013;</span><span class="kpi-sub">Ingresos entregadas</span><span class="kpi-icon">&#x1F4B0;</span></div>
+    </div>
+    <p class="section-title">&#x1F68C; Estado de Bodega por Bus</p>
+    <div class="buses-grid" id="buses-grid"><div class="skeleton" style="height:100px"></div><div class="skeleton" style="height:100px"></div><div class="skeleton" style="height:100px"></div><div class="skeleton" style="height:100px"></div></div>
+    <div class="card">
+      <div class="card-header"><h3>&#x1F4EC; Encomiendas Recientes</h3></div>
+      <div style="overflow-x:auto"><table><thead><tr><th>C&#xF3;digo</th><th>Remitente</th><th>Destinatario</th><th>Ruta</th><th>Peso</th><th>Estado</th><th>Total</th></tr></thead>
+      <tbody id="recent-tbody"><tr><td colspan="7"><div class="empty-state"><div class="loader"></div></div></td></tr></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- REGISTRO -->
+  <div id="view-registro" class="view">
+    <div class="page-header"><h2>Registrar Encomienda</h2><p>Complete el formulario para registrar un nuevo env&#xED;o</p></div>
+    <div class="card" style="padding:26px;position:relative">
+      <p class="form-section-label">Remitente</p>
+      <div class="form-grid">
+        <div class="form-group"><label>C&#xE9;dula / DNI</label>
+          <div class="input-icon-wrap"><input id="r-cedula" placeholder="V-12345678" onblur="lookupPersona('r')"><button class="icon-btn" onclick="lookupPersona('r')" title="Buscar">&#x1F50D;</button></div>
+          <span class="field-hint">Ingrese la c&#xE9;dula y presione Tab para buscar</span>
+        </div>
+        <div class="form-group"><label>Nombre completo</label><input id="r-nombre" placeholder="Nombre y apellido"></div>
+        <div class="form-group"><label>Tel&#xE9;fono</label><input id="r-telefono" placeholder="+58 412 000 0000"></div>
+      </div>
+      <hr class="section-sep">
+      <p class="form-section-label">Destinatario</p>
+      <div class="form-grid">
+        <div class="form-group"><label>C&#xE9;dula / DNI</label>
+          <div class="input-icon-wrap"><input id="d-cedula" placeholder="V-87654321" onblur="lookupPersona('d')"><button class="icon-btn" onclick="lookupPersona('d')" title="Buscar">&#x1F50D;</button></div>
+        </div>
+        <div class="form-group"><label>Nombre completo</label><input id="d-nombre" placeholder="Nombre y apellido"></div>
+        <div class="form-group"><label>Tel&#xE9;fono</label><input id="d-telefono" placeholder="+58 424 000 0000"></div>
+      </div>
+      <hr class="section-sep">
+      <p class="form-section-label">Datos del Env&#xED;o</p>
+      <div class="form-grid">
+        <div class="form-group"><label>Viaje / Bus Asignado</label>
+          <select id="e-viaje" onchange="onViajeChange()"><option value="">Cargando viajes...</option></select>
+          <span class="field-hint" id="viaje-bodega-hint"></span>
+        </div>
+        <div class="form-group"><label>Tipo</label>
+          <select id="e-tipo" onchange="calcCost()"><option value="Caja">Caja</option><option value="Sobre">Sobre</option></select>
+        </div>
+        <div class="form-group"><label>Peso (kg)</label><input id="e-peso" type="number" min="0.1" step="0.1" placeholder="0.0" oninput="calcCost()"></div>
+        <div class="form-group"><label>Descripci&#xF3;n del contenido</label><input id="e-descripcion" placeholder="Ropa, documentos, etc."></div>
+        <div class="form-group"><label>M&#xE9;todo de Pago</label>
+          <select id="e-metodo"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="pago_movil">Pago M&#xF3;vil</option><option value="tarjeta">Tarjeta</option><option value="zelle">Zelle</option></select>
+        </div>
+        <div class="form-group"><label>Referencia de Pago</label><input id="e-referencia" placeholder="Nro. de referencia (opcional)"></div>
+      </div>
+      <div id="cargo-warning" class="cargo-warning"><span id="cargo-warning-msg"></span></div>
+      <div id="cargo-error" class="cargo-error"><span id="cargo-error-msg"></span></div>
+      <hr class="section-sep">
+      <p class="form-section-label">Resumen de Costos</p>
+      <div class="cost-box">
+        <div class="cost-row"><span>Tarifa base (<span id="cost-tipo-label">Caja</span>)</span><span id="cost-base">$0.00</span></div>
+        <div class="cost-row"><span>Cargo por peso (<span id="cost-kg-rate">$0.80</span>/kg)</span><span id="cost-peso">$0.00</span></div>
+        <div class="cost-row total"><span>Total a Cobrar</span><span id="cost-total">$0.00</span></div>
+      </div>
+      <div style="margin-top:18px" class="btn-group">
+        <button class="btn btn-primary" id="btn-registrar" onclick="registrar()">&#x2705; Registrar Encomienda</button>
+        <button class="btn btn-secondary" onclick="resetForm()">&#x1F504; Limpiar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEGUIMIENTO -->
+  <div id="view-seguimiento" class="view">
+    <div class="page-header"><h2>Seguimiento y Control</h2><p>Busque una encomienda por su c&#xF3;digo de rastreo</p></div>
+    <div class="search-bar">
+      <input id="track-input" placeholder="Ingrese c&#xF3;digo ENC-XXXXX..." onkeydown="if(event.key==='Enter')buscarEncomienda()">
+      <button class="btn btn-primary" onclick="buscarEncomienda()">&#x1F50D; Buscar</button>
+    </div>
+    <div id="tracking-result"></div>
+    <div class="card" style="margin-top:22px">
+      <div class="card-header"><h3>&#x1F550; Pendientes por Procesar</h3><button class="btn btn-secondary btn-sm" onclick="renderPending()">&#x1F504; Actualizar</button></div>
+      <div style="overflow-x:auto"><table><thead><tr><th>C&#xF3;digo</th><th>Destinatario</th><th>Ruta</th><th>Bus</th><th>Estado</th><th>Acci&#xF3;n</th></tr></thead>
+      <tbody id="pending-tbody"><tr><td colspan="6"><div class="empty-state"><div class="loader"></div></div></td></tr></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- TABLA -->
+  <div id="view-tabla" class="view">
+    <div class="page-header"><h2>Tabla General</h2><p>Listado completo de encomiendas registradas</p></div>
+    <div class="filter-bar">
+      <input id="filter-search" placeholder="&#x1F50D; Buscar c&#xF3;digo, nombre, c&#xE9;dula..." oninput="renderTabla()">
+      <select id="filter-estado" onchange="renderTabla()">
+        <option value="">Todos los estados</option>
+        <option value="Registrado">Registrado</option>
+        <option value="En Tr&#xE1;nsito">En Tr&#xE1;nsito</option>
+        <option value="En Terminal">En Terminal</option>
+        <option value="Entregado">Entregado</option>
+      </select>
+      <select id="filter-bus" onchange="renderTabla()"><option value="">Todos los buses</option></select>
+    </div>
+    <div class="card"><div style="overflow-x:auto">
+      <table><thead><tr><th>C&#xF3;digo</th><th>Remitente</th><th>Destinatario</th><th>Ruta</th><th>Bus</th><th>Tipo</th><th>Peso</th><th>Estado</th><th>Total</th><th>Fecha</th></tr></thead>
+      <tbody id="tabla-tbody"></tbody></table>
+    </div></div>
+    <div id="tabla-empty" class="empty-state" style="display:none"><div class="icon">&#x1F4ED;</div><p>No se encontraron encomiendas</p></div>
+  </div>
+</main>
+
+<!-- MODAL CÉDULA -->
+<div class="modal-overlay" id="modal-cedula">
+  <div class="modal">
+    <h3>&#x1F510; Verificaci&#xF3;n de Identidad</h3>
+    <p>Para marcar como "Entregado", confirme la c&#xE9;dula del destinatario.</p>
+    <div class="form-group"><label>C&#xE9;dula del Destinatario</label><input id="modal-cedula-input" placeholder="V-87654321"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-success" id="btn-confirmar-entrega" onclick="confirmarEntrega()">&#x2705; Confirmar Entrega</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIGURACIÓN CONEXIÓN SEGURA -->
+<div class="modal-overlay" id="modal-config">
+  <div class="modal" style="max-width:480px">
+    <h3>&#x2699;&#xFE0F; Conexi&#xF3;n con Supabase</h3>
+    <p>Tus claves se resguardan de forma privada (en tu navegador o en <code>supabase.config.js</code>) para que ning&#xFA;n agente externo o visitante las pueda visualizar.</p>
+    <div class="form-group">
+      <label>URL del Proyecto Supabase</label>
+      <input id="cfg-sb-url" type="text" placeholder="https://xxxxxxxxxxxx.supabase.co" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="form-group">
+      <label>Anon Key P&#xFA;blica</label>
+      <div class="input-icon-wrap">
+        <input id="cfg-sb-key" type="password" placeholder="eyJhbGciOi..." autocomplete="off" spellcheck="false">
+        <button type="button" class="icon-btn" onclick="togglePasswordVisibility('cfg-sb-key', this)" title="Mostrar / Ocultar">&#x1F441;&#xFE0F;</button>
+      </div>
+      <div class="field-hint">&#x26A0;&#xFE0F; Usa la clave <code>anon</code> / <code>public</code>. NUNCA uses la clave <code>service_role</code> en clientes web.</div>
+    </div>
+    <div class="modal-actions" style="margin-top:18px;justify-content:space-between">
+      <button class="btn btn-secondary btn-sm" onclick="clearConfigModal()" style="color:var(--danger)">&#x1F5D1;&#xFE0F; Borrar</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" onclick="closeConfigModal()">Cerrar</button>
+        <button class="btn btn-primary" onclick="saveConfigModal()">&#x1F4BE; Guardar y Conectar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  RESOLUCIÓN SEGURA DE CREDENCIALES SUPABASE
+//  (Protección: no están expuestas en texto en el código)
+// ════════════════════════════════════════════════════════
+function getSupabaseCredentials() {
+  // 1. Prioridad: Guardado local seguro en navegador
+  const localUrl = localStorage.getItem('sb_custom_url');
+  const localKey = localStorage.getItem('sb_custom_key');
+  if (localUrl && localKey && !localUrl.includes('TU_') && !localKey.includes('TU_')) {
+    return { url: localUrl.trim(), anonKey: localKey.trim(), source: 'localStorage' };
+  }
+
+  // 2. Prioridad: Archivo local independiente protegido (supabase.config.js)
+  if (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url && window.SUPABASE_CONFIG.anonKey) {
+    const cUrl = window.SUPABASE_CONFIG.url.trim();
+    const cKey = window.SUPABASE_CONFIG.anonKey.trim();
+    if (cUrl && cKey && !cUrl.includes('TU_') && !cKey.includes('TU_')) {
+      return { url: cUrl, anonKey: cKey, source: 'supabase.config.js' };
+    }
+  }
+
+  return null;
+}
+
+// ════════════════════════════════════════════════════════
+//  CONSTANTES DE NEGOCIO
+// ════════════════════════════════════════════════════════
+const MAX_BODEGA  = 300;
+const ESTADOS     = ['Registrado', 'En Tránsito', 'En Terminal', 'Entregado'];
+const TARIFA_DEF  = { Caja: 3.5, Sobre: 1.5, kg: 0.8 };
+
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+let APP_MODE        = 'loading';   // 'supabase' | 'demo'
+let sb              = null;
+let currentUser     = null;
+let currentPerfil   = null;
+let viajesCache     = [];          // [{id, bus_nombre, ruta_label, bodega_libre, tarifa_base_caja, tarifa_base_sobre, tarifa_por_kg}]
+let busesCache      = [];          // para dashboard (modo demo)
+let selectedViajeTarifa = { ...TARIFA_DEF };
+let pendingDeliveryId   = null;
+let pendingDeliveryCedula = null;
+
+// Demo mode state
+let demoEncomiendas = [];
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+async function init() {
+  const creds = getSupabaseCredentials();
+
+  if (!creds) {
+    enterDemoMode();
+    return;
+  }
+
+  try {
+    const { createClient } = window.supabase;
+    sb = createClient(creds.url, creds.anonKey);
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      await onLogin(session.user);
+    } else {
+      showLoginScreen();
+    }
+    sb.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) await onLogin(session.user);
+      if (event === 'SIGNED_OUT') showLoginScreen();
+    });
+  } catch (e) {
+    console.error('Supabase error:', e);
+    enterDemoMode();
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  CONFIGURACIÓN MODAL
+// ════════════════════════════════════════════════════════
+function togglePasswordVisibility(inputId, btn) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    btn.textContent = '🔒';
+  } else {
+    inp.type = 'password';
+    btn.textContent = '👁️';
+  }
+}
+
+function openConfigModal() {
+  const creds = getSupabaseCredentials();
+  const urlInp = document.getElementById('cfg-sb-url');
+  const keyInp = document.getElementById('cfg-sb-key');
+  urlInp.value = creds ? creds.url : (localStorage.getItem('sb_custom_url') || '');
+  keyInp.value = creds ? creds.anonKey : (localStorage.getItem('sb_custom_key') || '');
+  document.getElementById('modal-config').classList.add('show');
+}
+
+function closeConfigModal() {
+  document.getElementById('modal-config').classList.remove('show');
+}
+
+function saveConfigModal() {
+  const url = document.getElementById('cfg-sb-url').value.trim();
+  const key = document.getElementById('cfg-sb-key').value.trim();
+  if (!url || !key) {
+    toast('Ingresa la URL y la Anon Key', 'warn');
+    return;
+  }
+  localStorage.setItem('sb_custom_url', url);
+  localStorage.setItem('sb_custom_key', key);
+  closeConfigModal();
+  toast('Credenciales guardadas. Recargando conexión...', 'success');
+  setTimeout(() => location.reload(), 700);
+}
+
+function clearConfigModal() {
+  localStorage.removeItem('sb_custom_url');
+  localStorage.removeItem('sb_custom_key');
+  document.getElementById('cfg-sb-url').value = '';
+  document.getElementById('cfg-sb-key').value = '';
+  toast('Credenciales locales eliminadas', 'warn');
+}
+
+// ════════════════════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════════════════════
+function showLoginScreen() {
+  document.getElementById('login-overlay').classList.remove('hidden');
+}
+
+function hideLoginScreen() {
+  document.getElementById('login-overlay').classList.add('hidden');
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pw    = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn   = document.getElementById('btn-login');
+  errEl.style.display = 'none';
+  if (!email || !pw) { errEl.textContent = 'Complete correo y contraseña.'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Ingresando...';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+  btn.disabled = false; btn.textContent = 'Iniciar Sesión';
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; }
+}
+
+async function doLogout() {
+  if (APP_MODE === 'demo') { showLoginScreen(); return; }
+  await sb.auth.signOut();
+}
+
+async function onLogin(user) {
+  closeConfigModal();
+  closeModal();
+  currentUser = user;
+  APP_MODE = 'supabase';
+  await loadPerfil();
+  hideLoginScreen();
+  updateUserDisplay();
+  await loadAllData();
+  initRealtime();
+  renderDashboard();
+}
+
+async function loadPerfil() {
+  const { data } = await sb.from('perfil_usuario')
+    .select('*, empresa:empresa_id(nombre)')
+    .eq('auth_user_id', currentUser.id)
+    .single();
+  currentPerfil = data;
+}
+
+function updateUserDisplay() {
+  if (APP_MODE === 'demo') {
+    document.getElementById('user-name').textContent  = 'Usuario Demo';
+    document.getElementById('user-role').textContent  = 'modo demo';
+    document.getElementById('user-avatar').textContent = 'D';
+    const badge = document.getElementById('mode-badge');
+    badge.style.display = 'inline-flex';
+    document.getElementById('config-banner').style.display = 'flex';
+  } else if (currentPerfil) {
+    const nombre = (currentPerfil.nombres + ' ' + currentPerfil.apellidos).trim() || currentUser.email;
+    document.getElementById('user-name').textContent  = nombre;
+    document.getElementById('user-role').textContent  = currentPerfil.rol || 'operador';
+    document.getElementById('user-avatar').textContent = nombre[0].toUpperCase();
+    const badge = document.getElementById('mode-badge');
+    badge.className = 'mode-badge live';
+    badge.textContent = 'LIVE';
+    badge.style.display = 'inline-flex';
+    document.getElementById('rt-dot').style.display = 'inline-block';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  DEMO MODE
+// ════════════════════════════════════════════════════════
+const DEMO_BUSES = [
+  { id: 'B-001', codigo: 'B-001', nombre: 'Unidad 01', placa: 'ABZ-123', capacidad_bodega_kg: 300 },
+  { id: 'B-002', codigo: 'B-002', nombre: 'Unidad 02', placa: 'CDX-456', capacidad_bodega_kg: 300 },
+  { id: 'B-003', codigo: 'B-003', nombre: 'Unidad 03', placa: 'EFW-789', capacidad_bodega_kg: 300 },
+  { id: 'B-004', codigo: 'B-004', nombre: 'Unidad 04', placa: 'GHV-012', capacidad_bodega_kg: 300 },
+];
+const DEMO_VIAJES = [
+  { id: 'V-001', bus_nombre: 'Unidad 01', ruta_label: 'Caracas → Maracaibo', bus_codigo: 'B-001', fecha_salida: new Date().toISOString(), tarifa_base_caja: 3.5, tarifa_base_sobre: 1.5, tarifa_por_kg: 0.8, capacidad_bodega_kg: 300 },
+  { id: 'V-002', bus_nombre: 'Unidad 02', ruta_label: 'Caracas → Mérida',    bus_codigo: 'B-002', fecha_salida: new Date().toISOString(), tarifa_base_caja: 4.0, tarifa_base_sobre: 2.0, tarifa_por_kg: 0.9, capacidad_bodega_kg: 300 },
+  { id: 'V-003', bus_nombre: 'Unidad 03', ruta_label: 'Valencia → Barquisimeto', bus_codigo: 'B-003', fecha_salida: new Date().toISOString(), tarifa_base_caja: 2.5, tarifa_base_sobre: 1.0, tarifa_por_kg: 0.7, capacidad_bodega_kg: 300 },
+  { id: 'V-004', bus_nombre: 'Unidad 04', ruta_label: 'Maracay → San Cristóbal', bus_codigo: 'B-004', fecha_salida: new Date().toISOString(), tarifa_base_caja: 5.0, tarifa_base_sobre: 2.5, tarifa_por_kg: 1.0, capacidad_bodega_kg: 300 },
+];
+
+function enterDemoMode() {
+  closeConfigModal();
+  closeModal();
+  APP_MODE = 'demo';
+  busesCache  = DEMO_BUSES;
+  viajesCache = DEMO_VIAJES;
+  const raw = localStorage.getItem('enc_demo_v3');
+  demoEncomiendas = raw ? JSON.parse(raw) : seedDemoData();
+  if (!raw) saveDemoData();
+  hideLoginScreen();
+  updateUserDisplay();
+  loadViajesSelect();
+  loadBusesFilter();
+  renderDashboard();
+}
+
+function saveDemoData() {
+  localStorage.setItem('enc_demo_v3', JSON.stringify(demoEncomiendas));
+}
+
+function seedDemoData() {
+  const rows = [
+    { rNombre:'Carlos Mendoza',  rCedula:'V-14325678', rTel:'+58 412 111 2233', dNombre:'Ana García',      dCedula:'V-19876543', dTel:'+58 424 333 4455', viajeId:'V-001', tipo:'Caja',  peso:12.5, estado:'Registrado',  fecha:'2025-09-18' },
+    { rNombre:'Luis Pérez',      rCedula:'V-16543210', rTel:'+58 416 222 3344', dNombre:'María Torres',    dCedula:'V-11234567', dTel:'+58 412 555 6677', viajeId:'V-002', tipo:'Sobre', peso:0.3,  estado:'En Tránsito', fecha:'2025-09-19' },
+    { rNombre:'Rosa Jiménez',    rCedula:'V-12987654', rTel:'+58 426 444 5566', dNombre:'José Rodríguez',  dCedula:'V-13579246', dTel:'+58 416 777 8899', viajeId:'V-003', tipo:'Caja',  peso:45.0, estado:'En Terminal', fecha:'2025-09-20' },
+    { rNombre:'Pedro Suárez',    rCedula:'V-17654321', rTel:'+58 414 666 7788', dNombre:'Luisa Gómez',     dCedula:'V-15432198', dTel:'+58 426 999 0011', viajeId:'V-004', tipo:'Caja',  peso:8.7,  estado:'Entregado',   fecha:'2025-09-21' },
+    { rNombre:'Elena Vargas',    rCedula:'V-20111222', rTel:'+58 412 888 9900', dNombre:'Miguel Castillo', dCedula:'V-22334455', dTel:'+58 424 100 2003', viajeId:'V-001', tipo:'Sobre', peso:0.2,  estado:'En Tránsito', fecha:'2025-09-22' },
+    { rNombre:'Omar Flores',     rCedula:'V-18776655', rTel:'+58 416 200 3001', dNombre:'Carla Díaz',      dCedula:'V-19223344', dTel:'+58 414 400 5002', viajeId:'V-002', tipo:'Caja',  peso:22.0, estado:'Registrado',  fecha:'2025-09-23' },
+    { rNombre:'Gabriela Mora',   rCedula:'V-21445566', rTel:'+58 412 700 8001', dNombre:'Andrés León',     dCedula:'V-23556677', dTel:'+58 424 500 9002', viajeId:'V-003', tipo:'Caja',  peso:33.5, estado:'Entregado',   fecha:'2025-09-23' },
+  ];
+  return rows.map((r, i) => {
+    const v = DEMO_VIAJES.find(x => x.id === r.viajeId);
+    const tarifa = r.tipo === 'Caja' ? (v ? v.tarifa_base_caja : TARIFA_DEF.Caja) : (v ? v.tarifa_base_sobre : TARIFA_DEF.Sobre);
+    const kgRate = v ? v.tarifa_por_kg : TARIFA_DEF.kg;
+    return {
+      id: `ENC-1000${i}`, codigo_rastreo: `ENC-1000${i}`, createdAt: Date.now() - i * 86400000,
+      viaje_id: r.viajeId, bus_codigo: v ? v.bus_codigo : 'B-001',
+      bus_nombre: v ? v.bus_nombre : 'Unidad 01', ruta_label: v ? v.ruta_label : 'Ruta',
+      tipo: r.tipo, peso_kg: r.peso, descripcion: '',
+      remitente_nombre: r.rNombre, remitente_cedula: r.rCedula, remitente_telefono: r.rTel,
+      destinatario_nombre: r.dNombre, destinatario_cedula: r.dCedula, destinatario_telefono: r.dTel,
+      costo_base: tarifa, costo_peso: +(r.peso * kgRate).toFixed(2),
+      total: +(tarifa + r.peso * kgRate).toFixed(2),
+      estado: r.estado, fecha_registro: r.fecha, fecha_entrega: r.estado === 'Entregado' ? r.fecha : null
+    };
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  LOAD DATA (Supabase)
+// ════════════════════════════════════════════════════════
+async function loadAllData() {
+  await Promise.all([loadViajesSelect(), loadBusesFilter()]);
+}
+
+async function loadViajesSelect() {
+  if (APP_MODE === 'demo') {
+    populateViajesSelect(viajesCache);
+    return;
+  }
+  // Load active viajes with bus + ruta + terminal info
+  const { data, error } = await sb.from('viaje')
+    .select(`id, fecha_salida, estado, peso_carga_actual_kg,
+             bus:bus_id(id, codigo, nombre, placa, capacidad_bodega_kg),
+             ruta:ruta_id(id, tarifa_base_caja, tarifa_base_sobre, tarifa_por_kg,
+               terminal_origen:terminal_origen_id(ciudad),
+               terminal_destino:terminal_destino_id(ciudad))`)
+    .in('estado', ['programado', 'en_ruta'])
+    .order('fecha_salida');
+  if (error) { console.error(error); return; }
+  viajesCache = (data || []).map(v => ({
+    id: v.id,
+    bus_nombre: v.bus.nombre,
+    bus_codigo: v.bus.codigo,
+    bus_placa: v.bus.placa,
+    capacidad_bodega_kg: v.bus.capacidad_bodega_kg,
+    peso_actual: v.peso_carga_actual_kg,
+    bodega_libre: v.bus.capacidad_bodega_kg - v.peso_carga_actual_kg,
+    ruta_label: `${v.ruta.terminal_origen.ciudad} → ${v.ruta.terminal_destino.ciudad}`,
+    tarifa_base_caja: v.ruta.tarifa_base_caja,
+    tarifa_base_sobre: v.ruta.tarifa_base_sobre,
+    tarifa_por_kg: v.ruta.tarifa_por_kg,
+    fecha_salida: v.fecha_salida,
+  }));
+  populateViajesSelect(viajesCache);
+}
+
+function populateViajesSelect(viajes) {
+  const sel = document.getElementById('e-viaje');
+  if (!viajes.length) {
+    sel.innerHTML = '<option value="">No hay viajes programados</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">Seleccione viaje...</option>' +
+    viajes.map(v => {
+      const fecha = new Date(v.fecha_salida).toLocaleDateString('es-VE', { day:'2-digit', month:'short' });
+      return `<option value="${v.id}">${v.bus_nombre} — ${v.ruta_label} — ${fecha}</option>`;
+    }).join('');
+}
+
+async function loadBusesFilter() {
+  const sel = document.getElementById('filter-bus');
+  if (APP_MODE === 'demo') {
+    sel.innerHTML = '<option value="">Todos los buses</option>' +
+      DEMO_BUSES.map(b => `<option value="${b.codigo}">${b.nombre}</option>`).join('');
+    return;
+  }
+  const { data } = await sb.from('bus').select('id, codigo, nombre').eq('estado', 'activo');
+  if (data) {
+    sel.innerHTML = '<option value="">Todos los buses</option>' +
+      data.map(b => `<option value="${b.codigo}">${b.nombre}</option>`).join('');
+    busesCache = data;
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  DASHBOARD
+// ════════════════════════════════════════════════════════
+async function renderDashboard() {
+  if (APP_MODE === 'demo') { renderDashboardDemo(); return; }
+  // KPIs
+  const { data: kpis } = await sb.from('v_dashboard_kpis').select('*').single();
+  if (kpis) {
+    document.getElementById('kpi-total').textContent      = kpis.total_encomiendas;
+    document.getElementById('kpi-transito').textContent   = kpis.en_transito;
+    document.getElementById('kpi-entregadas').textContent = kpis.entregadas;
+    document.getElementById('kpi-recaudacion').textContent= '$' + (+kpis.recaudacion_total).toFixed(2);
+  }
+  // Buses bodega
+  const { data: bodega } = await sb.from('v_bodega_buses').select('*');
+  renderBodegraGrid(bodega || []);
+  // Recent
+  const { data: recent } = await sb.from('v_encomiendas_detalle')
+    .select('*').order('fecha_registro', { ascending: false }).limit(8);
+  renderRecentTable(recent || []);
+}
+
+function renderDashboardDemo() {
+  const enc  = demoEncomiendas;
+  const rec  = enc.filter(e => e.estado === 'Entregado').reduce((s, e) => s + e.total, 0);
+  document.getElementById('kpi-total').textContent      = enc.length;
+  document.getElementById('kpi-transito').textContent   = enc.filter(e => e.estado === 'En Tránsito').length;
+  document.getElementById('kpi-entregadas').textContent = enc.filter(e => e.estado === 'Entregado').length;
+  document.getElementById('kpi-recaudacion').textContent= '$' + rec.toFixed(2);
+  // Buses
+  const bodega = DEMO_BUSES.map(b => {
+    const viaje = DEMO_VIAJES.find(v => v.bus_codigo === b.id);
+    const usado  = enc.filter(e => e.bus_codigo === b.id && e.estado !== 'Entregado').reduce((s, e) => s + e.peso_kg, 0);
+    return { bus_nombre: b.nombre, bus_codigo: b.codigo, placa: b.placa, ruta_label: viaje ? viaje.ruta_label : 'Sin ruta', capacidad_bodega_kg: b.capacidad_bodega_kg, peso_usado_kg: usado, peso_disponible_kg: b.capacidad_bodega_kg - usado, porcentaje_uso: Math.round(usado / b.capacidad_bodega_kg * 100 * 10) / 10 };
+  });
+  renderBodegraGrid(bodega);
+  const recent = [...enc].sort((a, b) => b.createdAt - a.createdAt).slice(0, 8);
+  renderRecentTable(recent.map(e => ({
+    codigo_rastreo: e.codigo_rastreo, remitente_nombre: e.remitente_nombre,
+    destinatario_nombre: e.destinatario_nombre, ciudad_origen: e.ruta_label?.split('→')[0]?.trim() || '',
+    ciudad_destino: e.ruta_label?.split('→')[1]?.trim() || '', peso_kg: e.peso_kg,
+    estado: e.estado, total: e.total
+  })));
+}
+
+function renderBodegraGrid(buses) {
+  const grid = document.getElementById('buses-grid');
+  if (!buses.length) { grid.innerHTML = '<p style="color:var(--text2);font-size:.8rem">Sin datos de buses.</p>'; return; }
+  grid.innerHTML = buses.map(b => {
+    const pct = Math.min(+(b.porcentaje_uso || 0), 100);
+    const cls = pct < 60 ? 'ok' : pct < 85 ? 'warn' : 'full';
+    return `<div class="bus-card">
+      <div class="bus-card-top"><span class="bus-name">${b.bus_nombre || b.nombre}</span><span style="font-size:.68rem;color:var(--text2)">${b.placa||''}</span></div>
+      <div class="bus-route">${b.ruta_label || '---'}</div>
+      <div class="capacity-bar"><div class="capacity-fill ${cls}" style="width:${pct}%"></div></div>
+      <div class="capacity-label"><span>${(+b.peso_usado_kg).toFixed(1)} kg usados</span><span>${(+b.peso_disponible_kg).toFixed(1)} kg libre</span></div>
+    </div>`;
+  }).join('');
+}
+
+function renderRecentTable(rows) {
+  const tbody = document.getElementById('recent-tbody');
+  tbody.innerHTML = rows.length
+    ? rows.map(e => `<tr>
+        <td><span class="tracking-code">${e.codigo_rastreo}</span></td>
+        <td>${e.remitente_nombre || ''}</td>
+        <td>${e.destinatario_nombre || ''}</td>
+        <td style="font-size:.75rem">${(e.ciudad_origen||'')} → ${(e.ciudad_destino||'')}</td>
+        <td>${(e.peso_kg||0)} kg</td>
+        <td>${badgeHtml(e.estado)}</td>
+        <td style="font-weight:700;color:var(--ok)">$${(+e.total).toFixed(2)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="7"><div class="empty-state"><div class="icon">&#x1F4ED;</div><p>Sin encomiendas</p></div></td></tr>`;
+}
+
+// ════════════════════════════════════════════════════════
+//  REGISTRO — Formulario
+// ════════════════════════════════════════════════════════
+async function lookupPersona(prefix) {
+  const cedula = document.getElementById(prefix + '-cedula').value.trim();
+  if (!cedula) return;
+  if (APP_MODE === 'demo') {
+    const existing = demoEncomiendas.find(e => e[prefix === 'r' ? 'remitente_cedula' : 'destinatario_cedula'] === cedula);
+    if (existing) {
+      document.getElementById(prefix + '-nombre').value   = existing[prefix === 'r' ? 'remitente_nombre' : 'destinatario_nombre'];
+      document.getElementById(prefix + '-telefono').value = existing[prefix === 'r' ? 'remitente_telefono' : 'destinatario_telefono'];
+      toast('Persona encontrada y autocompletada', 'info');
+    }
+    return;
+  }
+  const { data } = await sb.from('persona').select('nombres, apellidos, telefono').eq('cedula', cedula).single();
+  if (data) {
+    document.getElementById(prefix + '-nombre').value   = data.nombres + ' ' + data.apellidos;
+    document.getElementById(prefix + '-telefono').value = data.telefono || '';
+    toast('Persona encontrada en el sistema', 'info');
+  }
+}
+
+function onViajeChange() {
+  const id = document.getElementById('e-viaje').value;
+  const v  = viajesCache.find(x => x.id === id);
+  const hint = document.getElementById('viaje-bodega-hint');
+  if (v) {
+    selectedViajeTarifa = { Caja: +v.tarifa_base_caja, Sobre: +v.tarifa_base_sobre, kg: +v.tarifa_por_kg };
+    const libre = v.bodega_libre !== undefined ? +v.bodega_libre : MAX_BODEGA - getDemoPesoUsado(id);
+    hint.textContent = `Bodega disponible: ${libre.toFixed(1)} kg de ${MAX_BODEGA} kg`;
+    hint.style.color = libre < 50 ? 'var(--danger)' : libre < 100 ? 'var(--warn)' : 'var(--ok)';
+  } else {
+    selectedViajeTarifa = { ...TARIFA_DEF };
+    hint.textContent = '';
+  }
+  calcCost();
+}
+
+function getDemoPesoUsado(viajeId) {
+  return demoEncomiendas.filter(e => e.viaje_id === viajeId && e.estado !== 'Entregado').reduce((s, e) => s + e.peso_kg, 0);
+}
+
+function calcCost() {
+  const tipo  = document.getElementById('e-tipo').value;
+  const peso  = parseFloat(document.getElementById('e-peso').value) || 0;
+  const base  = selectedViajeTarifa[tipo] || TARIFA_DEF.Caja;
+  const kgR   = selectedViajeTarifa.kg || TARIFA_DEF.kg;
+  const kgC   = +(peso * kgR).toFixed(2);
+  document.getElementById('cost-tipo-label').textContent = tipo;
+  document.getElementById('cost-kg-rate').textContent    = '$' + kgR.toFixed(2);
+  document.getElementById('cost-base').textContent       = '$' + base.toFixed(2);
+  document.getElementById('cost-peso').textContent       = '$' + kgC.toFixed(2);
+  document.getElementById('cost-total').textContent      = '$' + (base + kgC).toFixed(2);
+  checkCargo();
+}
+
+function checkCargo() {
+  const vId  = document.getElementById('e-viaje').value;
+  const peso = parseFloat(document.getElementById('e-peso').value) || 0;
+  const wEl  = document.getElementById('cargo-warning');
+  const eEl  = document.getElementById('cargo-error');
+  wEl.style.display = 'none'; eEl.style.display = 'none';
+  if (!vId || !peso) return;
+  const v = viajesCache.find(x => x.id === vId);
+  const libre = v ? (v.bodega_libre !== undefined ? +v.bodega_libre : MAX_BODEGA - getDemoPesoUsado(vId)) : MAX_BODEGA;
+  if (peso > libre) {
+    document.getElementById('cargo-error-msg').textContent = `⛔ El peso (${peso} kg) supera la bodega disponible (${libre.toFixed(1)} kg).`;
+    eEl.style.display = 'block';
+  } else if (peso / libre > 0.75) {
+    document.getElementById('cargo-warning-msg').textContent = `⚠️ La bodega quedará al ${((peso + (MAX_BODEGA - libre)) / MAX_BODEGA * 100).toFixed(0)}% de capacidad.`;
+    wEl.style.display = 'block';
+  }
+}
+
+function resetForm() {
+  ['r-cedula','r-nombre','r-telefono','d-cedula','d-nombre','d-telefono','e-peso','e-descripcion','e-referencia']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('e-viaje').value = '';
+  document.getElementById('e-tipo').value  = 'Caja';
+  document.getElementById('cargo-warning').style.display = 'none';
+  document.getElementById('cargo-error').style.display   = 'none';
+  document.getElementById('viaje-bodega-hint').textContent = '';
+  selectedViajeTarifa = { ...TARIFA_DEF };
+  calcCost();
+}
+
+async function registrar() {
+  const g = id => document.getElementById(id).value.trim();
+  const rCedula  = g('r-cedula'), rNombre = g('r-nombre'), rTel = g('r-telefono');
+  const dCedula  = g('d-cedula'), dNombre = g('d-nombre'), dTel = g('d-telefono');
+  const viajeId  = g('e-viaje'), tipo = g('e-tipo'), peso = parseFloat(g('e-peso'));
+  const desc     = g('e-descripcion'), metodo = g('e-metodo'), ref = g('e-referencia');
+
+  if (!rCedula||!rNombre||!dCedula||!dNombre||!viajeId||!peso) {
+    toast('Complete todos los campos obligatorios.', 'error'); return;
+  }
+  if (rCedula === dCedula) { toast('Remitente y destinatario no pueden ser la misma persona.', 'error'); return; }
+
+  const v = viajesCache.find(x => x.id === viajeId);
+  const libre = v ? (v.bodega_libre !== undefined ? +v.bodega_libre : MAX_BODEGA - getDemoPesoUsado(viajeId)) : MAX_BODEGA;
+  if (peso > libre) { toast('Peso supera la bodega disponible del bus.', 'error'); return; }
+
+  const base  = selectedViajeTarifa[tipo] || TARIFA_DEF.Caja;
+  const kgR   = selectedViajeTarifa.kg || TARIFA_DEF.kg;
+  const total = +(base + peso * kgR).toFixed(2);
+
+  const btn = document.getElementById('btn-registrar');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Registrando...';
+
+  try {
+    if (APP_MODE === 'demo') {
+      await registrarDemo({ rCedula, rNombre, rTel, dCedula, dNombre, dTel, viajeId, tipo, peso, desc, metodo, ref, base, kgR, total, v });
+    } else {
+      await registrarSupabase({ rCedula, rNombre, rTel, dCedula, dNombre, dTel, viajeId, tipo, peso, desc, metodo, ref, base, kgR, total });
+    }
+  } finally {
+    btn.disabled = false; btn.innerHTML = '&#x2705; Registrar Encomienda';
+  }
+}
+
+async function registrarDemo({ rCedula, rNombre, rTel, dCedula, dNombre, dTel, viajeId, tipo, peso, desc, metodo, ref, base, kgR, total, v }) {
+  const codigo = generarCodigo();
+  demoEncomiendas.push({
+    id: codigo, codigo_rastreo: codigo, createdAt: Date.now(),
+    viaje_id: viajeId, bus_codigo: v?.bus_codigo || '', bus_nombre: v?.bus_nombre || '',
+    ruta_label: v?.ruta_label || '', tipo, peso_kg: peso, descripcion: desc,
+    remitente_nombre: rNombre, remitente_cedula: rCedula, remitente_telefono: rTel,
+    destinatario_nombre: dNombre, destinatario_cedula: dCedula, destinatario_telefono: dTel,
+    costo_base: base, costo_peso: +(peso * kgR).toFixed(2), total,
+    estado: 'Registrado', fecha_registro: new Date().toISOString().split('T')[0], fecha_entrega: null,
+    pago_metodo: metodo, pago_referencia: ref
+  });
+  saveDemoData();
+  toast(`✅ Encomienda ${codigo} registrada exitosamente!`, 'success');
+  resetForm();
+  renderDashboard();
+}
+
+async function registrarSupabase({ rCedula, rNombre, rTel, dCedula, dNombre, dTel, viajeId, tipo, peso, desc, metodo, ref, base, kgR, total }) {
+  // Upsert personas
+  const nombres = n => n.split(' ').slice(0, -1).join(' ') || n;
+  const apellidos = n => n.split(' ').slice(-1).join(' ');
+
+  const upsert = async (cedula, nombre, telefono) => {
+    const { data } = await sb.from('persona').upsert({ cedula, nombres: nombres(nombre), apellidos: apellidos(nombre), telefono }, { onConflict: 'cedula' }).select('id').single();
+    return data?.id;
+  };
+
+  const [remId, desId] = await Promise.all([upsert(rCedula, rNombre, rTel), upsert(dCedula, dNombre, dTel)]);
+  if (!remId || !desId) { toast('Error al registrar personas.', 'error'); return; }
+
+  const codigo = generarCodigo();
+  const { data: enc, error } = await sb.from('encomienda').insert({
+    codigo_rastreo: codigo, viaje_id: viajeId, remitente_id: remId, destinatario_id: desId,
+    registrado_por: currentPerfil?.id || null,
+    tipo, peso_kg: peso, descripcion: desc,
+    costo_base: base, costo_peso: +(peso * kgR).toFixed(2), total, estado: 'Registrado'
+  }).select('id').single();
+  if (error) { toast('Error al registrar encomienda: ' + error.message, 'error'); return; }
+
+  // Pago
+  await sb.from('pago').insert({ encomienda_id: enc.id, metodo, monto: total, referencia: ref || null, registrado_por: currentPerfil?.id || null });
+
+  toast(`✅ Encomienda ${codigo} registrada exitosamente!`, 'success');
+  resetForm();
+  await loadViajesSelect(); // Refresh bodega
+  renderDashboard();
+}
+
+function generarCodigo() {
+  const codigo = 'ENC-' + (10000 + Math.floor(Math.random() * 89999));
+  if (APP_MODE === 'demo') {
+    return demoEncomiendas.find(e => e.codigo_rastreo === codigo) ? generarCodigo() : codigo;
+  }
+  return codigo; // Supabase: hay unique constraint como fallback
+}
+
+// ════════════════════════════════════════════════════════
+//  SEGUIMIENTO
+// ════════════════════════════════════════════════════════
+async function buscarEncomienda() {
+  const q      = document.getElementById('track-input').value.trim().toUpperCase();
+  const result = document.getElementById('tracking-result');
+  result.innerHTML = '<div style="padding:20px;text-align:center"><span class="loader"></span></div>';
+  if (!q) { result.innerHTML = ''; return; }
+
+  let enc = null;
+  if (APP_MODE === 'demo') {
+    const raw = demoEncomiendas.find(e => e.codigo_rastreo.toUpperCase() === q);
+    if (raw) enc = mapDemoToView(raw);
+  } else {
+    const { data } = await sb.from('v_encomiendas_detalle').select('*').eq('codigo_rastreo', q).single();
+    enc = data;
+  }
+
+  if (!enc) {
+    result.innerHTML = `<div class="tracking-card show" style="text-align:center;color:var(--danger)">❌ No se encontró la encomienda <strong>${q}</strong></div>`;
+    return;
+  }
+  result.innerHTML = buildTrackingCard(enc);
+}
+
+function mapDemoToView(e) {
+  return {
+    id: e.id, codigo_rastreo: e.codigo_rastreo,
+    tipo: e.tipo, peso_kg: e.peso_kg, total: e.total,
+    estado: e.estado, fecha_registro: e.fecha_registro, fecha_entrega: e.fecha_entrega,
+    remitente_nombre: e.remitente_nombre, remitente_cedula: e.remitente_cedula,
+    destinatario_nombre: e.destinatario_nombre, destinatario_cedula: e.destinatario_cedula,
+    bus_nombre: e.bus_nombre, ciudad_origen: e.ruta_label?.split('→')[0]?.trim() || '',
+    ciudad_destino: e.ruta_label?.split('→')[1]?.trim() || '',
+    pago_metodo: e.pago_metodo || 'efectivo', pago_estado: 'pagado'
+  };
+}
+
+function buildTrackingCard(enc) {
+  const stepIdx = ESTADOS.indexOf(enc.estado);
+  const steps = ESTADOS.map((s, i) => {
+    const cls  = i < stepIdx ? 'done' : i === stepIdx ? 'current' : '';
+    const icon = i < stepIdx ? '✓' : i === stepIdx ? '●' : '';
+    return `<div class="step ${cls}"><div class="step-dot">${icon}</div><div class="step-label">${s}</div></div>`;
+  }).join('');
+  const next = ESTADOS[stepIdx + 1];
+  let btn = '';
+  if (next && next !== 'Entregado')
+    btn = `<button class="btn btn-warn btn-sm" onclick="cambiarEstado('${enc.codigo_rastreo}','${next}')">→ ${next}</button>`;
+  else if (next === 'Entregado')
+    btn = `<button class="btn btn-success btn-sm" onclick="abrirModalEntrega('${enc.codigo_rastreo}','${enc.destinatario_cedula}')">📬 Marcar Entregado</button>`;
+  else
+    btn = `<span style="color:var(--ok);font-weight:600;font-size:.82rem">✅ Encomienda completada</span>`;
+
+  return `<div class="tracking-card show">
+    <div class="tracking-header">
+      <div class="tracking-meta"><span class="tracking-code" style="font-size:.95rem">${enc.codigo_rastreo}</span><p>${enc.tipo} · ${enc.peso_kg} kg · ${enc.bus_nombre||''}</p></div>
+      ${badgeHtml(enc.estado)}
+    </div>
+    <div class="stepper">${steps}</div>
+    <div class="tracking-details-grid">
+      <div class="detail-item"><label>Remitente</label><p>${enc.remitente_nombre}</p></div>
+      <div class="detail-item"><label>Destinatario</label><p>${enc.destinatario_nombre}</p></div>
+      <div class="detail-item"><label>Ruta</label><p>${enc.ciudad_origen||''} → ${enc.ciudad_destino||''}</p></div>
+      <div class="detail-item"><label>Bus</label><p>${enc.bus_nombre||''}</p></div>
+      <div class="detail-item"><label>Registro</label><p>${enc.fecha_registro?.split('T')[0]||''}</p></div>
+      <div class="detail-item"><label>Total</label><p style="color:var(--ok);font-weight:700">$${(+enc.total).toFixed(2)}</p></div>
+    </div>
+    <div class="tracking-actions">${btn}</div>
+  </div>`;
+}
+
+async function renderPending() {
+  const tbody = document.getElementById('pending-tbody');
+  tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><span class="loader"></span></div></td></tr>';
+  let rows = [];
+  if (APP_MODE === 'demo') {
+    rows = demoEncomiendas
+      .filter(e => e.estado !== 'Entregado')
+      .sort((a, b) => ESTADOS.indexOf(a.estado) - ESTADOS.indexOf(b.estado))
+      .map(mapDemoToView);
+  } else {
+    const { data } = await sb.from('v_encomiendas_detalle')
+      .select('codigo_rastreo,destinatario_nombre,destinatario_cedula,ciudad_origen,ciudad_destino,bus_nombre,estado,total')
+      .neq('estado', 'Entregado')
+      .order('fecha_registro');
+    rows = data || [];
+  }
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="icon">&#x1F389;</div><p>No hay encomiendas pendientes</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(e => {
+    const next = ESTADOS[ESTADOS.indexOf(e.estado) + 1];
+    const btn = next === 'Entregado'
+      ? `<button class="btn btn-success btn-sm" onclick="abrirModalEntrega('${e.codigo_rastreo}','${e.destinatario_cedula}')">📬 Entregar</button>`
+      : next ? `<button class="btn btn-warn btn-sm" onclick="cambiarEstado('${e.codigo_rastreo}','${next}')">→ ${next}</button>` : '';
+    return `<tr><td><span class="tracking-code">${e.codigo_rastreo}</span></td><td>${e.destinatario_nombre}</td><td style="font-size:.75rem">${e.ciudad_origen||''} → ${e.ciudad_destino||''}</td><td>${e.bus_nombre||''}</td><td>${badgeHtml(e.estado)}</td><td>${btn}</td></tr>`;
+  }).join('');
+}
+
+async function cambiarEstado(codigo, nuevoEstado) {
+  if (APP_MODE === 'demo') {
+    const enc = demoEncomiendas.find(e => e.codigo_rastreo === codigo);
+    if (!enc) return;
+    enc.estado = nuevoEstado;
+    if (nuevoEstado === 'Entregado') enc.fecha_entrega = new Date().toISOString().split('T')[0];
+    saveDemoData();
+  } else {
+    const { error } = await sb.from('encomienda').update({ estado: nuevoEstado }).eq('codigo_rastreo', codigo);
+    if (error) { toast('Error: ' + error.message, 'error'); return; }
+  }
+  toast(`Estado de ${codigo} → "${nuevoEstado}"`, 'success');
+  await renderPending();
+  renderDashboard();
+  const q = document.getElementById('track-input').value.trim().toUpperCase();
+  if (q === codigo.toUpperCase()) buscarEncomienda();
+}
+
+function abrirModalEntrega(codigo, cedula) {
+  pendingDeliveryId     = codigo;
+  pendingDeliveryCedula = cedula;
+  document.getElementById('modal-cedula-input').value = '';
+  document.getElementById('modal-cedula').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modal-cedula').classList.remove('show');
+  pendingDeliveryId = pendingDeliveryCedula = null;
+}
+
+async function confirmarEntrega() {
+  const cedInput = document.getElementById('modal-cedula-input').value.trim();
+  if (!pendingDeliveryId) { closeModal(); return; }
+  const btn = document.getElementById('btn-confirmar-entrega');
+
+  let cedEsperada = pendingDeliveryCedula;
+  if (!cedEsperada && APP_MODE !== 'demo') {
+    const { data } = await sb.from('v_encomiendas_detalle').select('destinatario_cedula').eq('codigo_rastreo', pendingDeliveryId).single();
+    cedEsperada = data?.destinatario_cedula;
+  }
+  if (cedEsperada && cedEsperada.replace(/\s/g,'').toLowerCase() !== cedInput.replace(/\s/g,'').toLowerCase()) {
+    toast('❌ Cédula incorrecta. Verifique.', 'error'); return;
+  }
+
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+  await cambiarEstado(pendingDeliveryId, 'Entregado');
+  closeModal();
+  btn.disabled = false; btn.innerHTML = '✅ Confirmar Entrega';
+}
+
+// ════════════════════════════════════════════════════════
+//  TABLA GENERAL
+// ════════════════════════════════════════════════════════
+async function renderTabla() {
+  const search   = document.getElementById('filter-search').value.toLowerCase();
+  const estado   = document.getElementById('filter-estado').value;
+  const busCodigo= document.getElementById('filter-bus').value;
+  const tbody    = document.getElementById('tabla-tbody');
+  const emptyEl  = document.getElementById('tabla-empty');
+  tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><span class="loader"></span></div></td></tr>';
+  emptyEl.style.display = 'none';
+
+  let rows = [];
+  if (APP_MODE === 'demo') {
+    rows = demoEncomiendas
+      .filter(e => {
+        const ms = !search || [e.codigo_rastreo, e.remitente_nombre, e.remitente_cedula, e.destinatario_nombre, e.destinatario_cedula].some(v => (v||'').toLowerCase().includes(search));
+        const me = !estado || e.estado === estado;
+        const mb = !busCodigo || e.bus_codigo === busCodigo;
+        return ms && me && mb;
+      })
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map(mapDemoToView);
+  } else {
+    let q = sb.from('v_encomiendas_detalle').select('*');
+    if (estado) q = q.eq('estado', estado);
+    if (busCodigo) q = q.eq('bus_codigo', busCodigo);
+    if (search) q = q.or(`codigo_rastreo.ilike.%${search}%,remitente_nombre.ilike.%${search}%,remitente_cedula.ilike.%${search}%,destinatario_nombre.ilike.%${search}%,destinatario_cedula.ilike.%${search}%`);
+    q = q.order('fecha_registro', { ascending: false });
+    const { data } = await q;
+    rows = data || [];
+  }
+
+  if (!rows.length) { tbody.innerHTML = ''; emptyEl.style.display = 'block'; return; }
+  tbody.innerHTML = rows.map(e => `<tr>
+    <td><span class="tracking-code">${e.codigo_rastreo}</span></td>
+    <td><div style="font-weight:600">${e.remitente_nombre}</div><div style="font-size:.7rem;color:var(--text2)">${e.remitente_cedula||''}</div></td>
+    <td><div style="font-weight:600">${e.destinatario_nombre}</div><div style="font-size:.7rem;color:var(--text2)">${e.destinatario_cedula||''}</div></td>
+    <td style="font-size:.78rem">${e.ciudad_origen||''} → ${e.ciudad_destino||''}</td>
+    <td style="font-size:.78rem">${e.bus_nombre||''}</td>
+    <td>${e.tipo}</td>
+    <td>${e.peso_kg} kg</td>
+    <td>${badgeHtml(e.estado)}</td>
+    <td style="font-weight:700;color:var(--ok)">$${(+e.total).toFixed(2)}</td>
+    <td style="font-size:.73rem;color:var(--text2)">${(e.fecha_registro||'').split('T')[0]}</td>
+  </tr>`).join('');
+}
+
+// ════════════════════════════════════════════════════════
+//  REALTIME (Supabase)
+// ════════════════════════════════════════════════════════
+function initRealtime() {
+  if (!sb) return;
+  sb.channel('enc-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'encomienda' }, () => {
+      renderDashboard();
+      const view = document.querySelector('.view.active')?.id;
+      if (view === 'view-seguimiento') renderPending();
+      if (view === 'view-tabla') renderTabla();
+    })
+    .subscribe();
+}
+
+// ════════════════════════════════════════════════════════
+//  NAVIGATION
+// ════════════════════════════════════════════════════════
+function navigate(view, el) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  if (el) el.classList.add('active');
+  if (view === 'dashboard')   renderDashboard();
+  if (view === 'seguimiento') renderPending();
+  if (view === 'tabla')       renderTabla();
+  if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('open');
+}
+
+// ════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════
+function badgeHtml(estado) {
+  const map   = { 'Registrado':'registrado','En Tránsito':'transito','En Terminal':'terminal','Entregado':'entregado' };
+  const icons = { 'Registrado':'📋','En Tránsito':'🚌','En Terminal':'🏢','Entregado':'✅' };
+  return `<span class="badge ${map[estado]||''}">${icons[estado]||''} ${estado}</span>`;
+}
+
+function toast(msg, type = 'success') {
+  const c  = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  const ico = { success:'✅', error:'❌', warn:'⚠️', info:'ℹ️' };
+  el.innerHTML = `<span>${ico[type]||''}</span><span>${msg}</span>`;
+  c.appendChild(el);
+  setTimeout(() => { el.style.animation = 'slideOut .3s forwards'; setTimeout(() => el.remove(), 300); }, 3800);
+}
+
+// ── Modal backdrop
+document.getElementById('modal-cedula').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+document.getElementById('modal-config').addEventListener('click', e => { if (e.target === e.currentTarget) closeConfigModal(); });
+
+// ── Boot
+init();
+</script>
+</body>
+</html>
