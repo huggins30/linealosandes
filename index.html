@@ -30,12 +30,10 @@
   .login-error{margin-top:12px;padding:10px 14px;background:rgba(240,92,92,.12);border:1px solid rgba(240,92,92,.3);border-radius:var(--radius-sm);font-size:.8rem;color:var(--danger);display:none}
   .login-card .form-group{margin-bottom:16px}
   .login-card .btn{width:100%;justify-content:center;margin-top:4px}
-  .login-demo-btn{width:100%;margin-top:10px;justify-content:center;font-size:.8rem}
-  .login-sep{text-align:center;font-size:.75rem;color:var(--text3);margin:14px 0}
+  .login-config-btn{width:100%;margin-top:10px;justify-content:center;font-size:.78rem}
 
   /* ── CONFIG BANNER ── */
-  #config-banner{background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.3);border-radius:var(--radius-sm);padding:12px 18px;font-size:.82rem;color:var(--warn);display:none;align-items:center;gap:12px;margin-bottom:24px}
-  #config-banner code{background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px;font-size:.75rem}
+  #config-banner{display:none}
 
   /* ── SIDEBAR ── */
   #sidebar{position:fixed;left:0;top:0;height:100%;width:230px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:transform .3s}
@@ -55,7 +53,6 @@
   .btn-logout{background:none;border:none;color:var(--text3);cursor:pointer;font-size:.9rem;padding:4px;border-radius:4px;flex-shrink:0}
   .btn-logout:hover{color:var(--danger)}
   .mode-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:99px;font-size:.62rem;font-weight:700;margin-top:4px}
-  .mode-badge.demo{background:rgba(245,166,35,.15);color:var(--warn)}
   .mode-badge.live{background:rgba(61,214,140,.15);color:var(--ok)}
   #hamburger{display:none;position:fixed;top:14px;left:14px;z-index:200;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);width:40px;height:40px;cursor:pointer;font-size:1.2rem;color:var(--text)}
 
@@ -238,9 +235,7 @@
     <div class="form-group"><label>Correo electr&#xF3;nico</label><input id="login-email" type="email" placeholder="operador@empresa.com" autocomplete="email"></div>
     <div class="form-group"><label>Contrase&#xF1;a</label><input id="login-password" type="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Iniciar Sesi&#xF3;n</button>
-    <div class="login-sep">&#xF7; o &#xF7;</div>
-    <button class="btn btn-secondary login-demo-btn" onclick="enterDemoMode()">&#x1F9EA; Continuar en Modo Demo</button>
-    <button class="btn btn-secondary" style="width:100%;margin-top:8px;justify-content:center;font-size:.78rem;" onclick="openConfigModal()">&#x2699;&#xFE0F; Configurar Conexi&#xF3;n Supabase</button>
+    <button class="btn btn-secondary login-config-btn" onclick="openConfigModal()">&#x2699;&#xFE0F; Configurar Conexi&#xF3;n Supabase</button>
     <div id="login-error" class="login-error"></div>
   </div>
 </div>
@@ -264,7 +259,7 @@
     <div class="user-info">
       <div class="user-name" id="user-name">Cargando...</div>
       <div class="user-role" id="user-role">---</div>
-      <span class="mode-badge demo" id="mode-badge" style="display:none">DEMO</span>
+      <span class="mode-badge live" id="mode-badge" style="display:none">LIVE</span>
     </div>
     <button class="btn-logout" onclick="openConfigModal()" title="Configuraci&#xF3;n de Conexi&#xF3;n" style="margin-right:2px">&#x2699;&#xFE0F;</button>
     <button class="btn-logout" onclick="doLogout()" title="Cerrar sesi&#xF3;n">&#x23FB;</button>
@@ -273,12 +268,7 @@
 
 <!-- ══ MAIN ══ -->
 <main id="main">
-  <!-- ══ CONFIG BANNER ══ -->
-  <div id="config-banner">
-    <span>&#x26A0;&#xFE0F; Supabase no conectado &mdash; ingresa tus credenciales en <code>supabase.config.js</code> o haz clic aqu&#xED;:</span>
-    <button class="btn btn-sm btn-secondary" onclick="openConfigModal()" style="padding:4px 10px;font-size:.74rem;">&#x2699;&#xFE0F; Conectar</button>
-    <span class="mode-badge demo" style="margin-left:auto">DEMO</span>
-  </div>
+  <div id="config-banner" style="display:none"></div>
 
   <!-- DASHBOARD -->
   <div id="view-dashboard" class="view active">
@@ -470,18 +460,14 @@ const TARIFA_DEF  = { Caja: 3.5, Sobre: 1.5, kg: 0.8 };
 // ════════════════════════════════════════════════════════
 //  STATE
 // ════════════════════════════════════════════════════════
-let APP_MODE        = 'loading';   // 'supabase' | 'demo'
-let sb              = null;
-let currentUser     = null;
-let currentPerfil   = null;
-let viajesCache     = [];          // [{id, bus_nombre, ruta_label, bodega_libre, tarifa_base_caja, tarifa_base_sobre, tarifa_por_kg}]
-let busesCache      = [];          // para dashboard (modo demo)
+let sb                  = null;
+let currentUser         = null;
+let currentPerfil       = null;
+let viajesCache         = [];
+let busesCache          = [];
 let selectedViajeTarifa = { ...TARIFA_DEF };
 let pendingDeliveryId   = null;
 let pendingDeliveryCedula = null;
-
-// Demo mode state
-let demoEncomiendas = [];
 
 // ════════════════════════════════════════════════════════
 //  INIT
@@ -490,7 +476,10 @@ async function init() {
   const creds = getSupabaseCredentials();
 
   if (!creds) {
-    enterDemoMode();
+    // Sin credenciales: mostrar pantalla de login con aviso para configurar
+    showLoginScreen();
+    document.getElementById('login-error').textContent = '⚙️ Primero configura la conexión a Supabase.';
+    document.getElementById('login-error').style.display = 'block';
     return;
   }
 
@@ -509,7 +498,9 @@ async function init() {
     });
   } catch (e) {
     console.error('Supabase error:', e);
-    enterDemoMode();
+    showLoginScreen();
+    document.getElementById('login-error').textContent = '❌ Error al conectar con Supabase: ' + e.message;
+    document.getElementById('login-error').style.display = 'block';
   }
 }
 
@@ -588,8 +579,8 @@ async function doLogin() {
 }
 
 async function doLogout() {
-  if (APP_MODE === 'demo') { showLoginScreen(); return; }
-  await sb.auth.signOut();
+  if (sb) await sb.auth.signOut();
+  else showLoginScreen();
 }
 
 async function onLogin(user) {
@@ -614,89 +605,25 @@ async function loadPerfil() {
 }
 
 function updateUserDisplay() {
-  if (APP_MODE === 'demo') {
-    document.getElementById('user-name').textContent  = 'Usuario Demo';
-    document.getElementById('user-role').textContent  = 'modo demo';
-    document.getElementById('user-avatar').textContent = 'D';
-    const badge = document.getElementById('mode-badge');
-    badge.style.display = 'inline-flex';
-    document.getElementById('config-banner').style.display = 'flex';
-  } else if (currentPerfil) {
+  if (currentPerfil) {
     const nombre = (currentPerfil.nombres + ' ' + currentPerfil.apellidos).trim() || currentUser.email;
-    document.getElementById('user-name').textContent  = nombre;
-    document.getElementById('user-role').textContent  = currentPerfil.rol || 'operador';
+    document.getElementById('user-name').textContent   = nombre;
+    document.getElementById('user-role').textContent   = currentPerfil.rol || 'operador';
     document.getElementById('user-avatar').textContent = nombre[0].toUpperCase();
     const badge = document.getElementById('mode-badge');
     badge.className = 'mode-badge live';
     badge.textContent = 'LIVE';
     badge.style.display = 'inline-flex';
     document.getElementById('rt-dot').style.display = 'inline-block';
+  } else if (currentUser) {
+    const nombre = currentUser.email;
+    document.getElementById('user-name').textContent   = nombre;
+    document.getElementById('user-role').textContent   = 'operador';
+    document.getElementById('user-avatar').textContent = nombre[0].toUpperCase();
   }
 }
 
-// ════════════════════════════════════════════════════════
-//  DEMO MODE
-// ════════════════════════════════════════════════════════
-const DEMO_BUSES = [
-  { id: 'B-001', codigo: 'B-001', nombre: 'Unidad 01', placa: 'ABZ-123', capacidad_bodega_kg: 300 },
-  { id: 'B-002', codigo: 'B-002', nombre: 'Unidad 02', placa: 'CDX-456', capacidad_bodega_kg: 300 },
-  { id: 'B-003', codigo: 'B-003', nombre: 'Unidad 03', placa: 'EFW-789', capacidad_bodega_kg: 300 },
-  { id: 'B-004', codigo: 'B-004', nombre: 'Unidad 04', placa: 'GHV-012', capacidad_bodega_kg: 300 },
-];
-const DEMO_VIAJES = [
-  { id: 'V-001', bus_nombre: 'Unidad 01', ruta_label: 'Caracas → Maracaibo', bus_codigo: 'B-001', fecha_salida: new Date().toISOString(), tarifa_base_caja: 3.5, tarifa_base_sobre: 1.5, tarifa_por_kg: 0.8, capacidad_bodega_kg: 300 },
-  { id: 'V-002', bus_nombre: 'Unidad 02', ruta_label: 'Caracas → Mérida',    bus_codigo: 'B-002', fecha_salida: new Date().toISOString(), tarifa_base_caja: 4.0, tarifa_base_sobre: 2.0, tarifa_por_kg: 0.9, capacidad_bodega_kg: 300 },
-  { id: 'V-003', bus_nombre: 'Unidad 03', ruta_label: 'Valencia → Barquisimeto', bus_codigo: 'B-003', fecha_salida: new Date().toISOString(), tarifa_base_caja: 2.5, tarifa_base_sobre: 1.0, tarifa_por_kg: 0.7, capacidad_bodega_kg: 300 },
-  { id: 'V-004', bus_nombre: 'Unidad 04', ruta_label: 'Maracay → San Cristóbal', bus_codigo: 'B-004', fecha_salida: new Date().toISOString(), tarifa_base_caja: 5.0, tarifa_base_sobre: 2.5, tarifa_por_kg: 1.0, capacidad_bodega_kg: 300 },
-];
 
-function enterDemoMode() {
-  closeConfigModal();
-  closeModal();
-  APP_MODE = 'demo';
-  busesCache  = DEMO_BUSES;
-  viajesCache = DEMO_VIAJES;
-  const raw = localStorage.getItem('enc_demo_v3');
-  demoEncomiendas = raw ? JSON.parse(raw) : seedDemoData();
-  if (!raw) saveDemoData();
-  hideLoginScreen();
-  updateUserDisplay();
-  loadViajesSelect();
-  loadBusesFilter();
-  renderDashboard();
-}
-
-function saveDemoData() {
-  localStorage.setItem('enc_demo_v3', JSON.stringify(demoEncomiendas));
-}
-
-function seedDemoData() {
-  const rows = [
-    { rNombre:'Carlos Mendoza',  rCedula:'V-14325678', rTel:'+58 412 111 2233', dNombre:'Ana García',      dCedula:'V-19876543', dTel:'+58 424 333 4455', viajeId:'V-001', tipo:'Caja',  peso:12.5, estado:'Registrado',  fecha:'2025-09-18' },
-    { rNombre:'Luis Pérez',      rCedula:'V-16543210', rTel:'+58 416 222 3344', dNombre:'María Torres',    dCedula:'V-11234567', dTel:'+58 412 555 6677', viajeId:'V-002', tipo:'Sobre', peso:0.3,  estado:'En Tránsito', fecha:'2025-09-19' },
-    { rNombre:'Rosa Jiménez',    rCedula:'V-12987654', rTel:'+58 426 444 5566', dNombre:'José Rodríguez',  dCedula:'V-13579246', dTel:'+58 416 777 8899', viajeId:'V-003', tipo:'Caja',  peso:45.0, estado:'En Terminal', fecha:'2025-09-20' },
-    { rNombre:'Pedro Suárez',    rCedula:'V-17654321', rTel:'+58 414 666 7788', dNombre:'Luisa Gómez',     dCedula:'V-15432198', dTel:'+58 426 999 0011', viajeId:'V-004', tipo:'Caja',  peso:8.7,  estado:'Entregado',   fecha:'2025-09-21' },
-    { rNombre:'Elena Vargas',    rCedula:'V-20111222', rTel:'+58 412 888 9900', dNombre:'Miguel Castillo', dCedula:'V-22334455', dTel:'+58 424 100 2003', viajeId:'V-001', tipo:'Sobre', peso:0.2,  estado:'En Tránsito', fecha:'2025-09-22' },
-    { rNombre:'Omar Flores',     rCedula:'V-18776655', rTel:'+58 416 200 3001', dNombre:'Carla Díaz',      dCedula:'V-19223344', dTel:'+58 414 400 5002', viajeId:'V-002', tipo:'Caja',  peso:22.0, estado:'Registrado',  fecha:'2025-09-23' },
-    { rNombre:'Gabriela Mora',   rCedula:'V-21445566', rTel:'+58 412 700 8001', dNombre:'Andrés León',     dCedula:'V-23556677', dTel:'+58 424 500 9002', viajeId:'V-003', tipo:'Caja',  peso:33.5, estado:'Entregado',   fecha:'2025-09-23' },
-  ];
-  return rows.map((r, i) => {
-    const v = DEMO_VIAJES.find(x => x.id === r.viajeId);
-    const tarifa = r.tipo === 'Caja' ? (v ? v.tarifa_base_caja : TARIFA_DEF.Caja) : (v ? v.tarifa_base_sobre : TARIFA_DEF.Sobre);
-    const kgRate = v ? v.tarifa_por_kg : TARIFA_DEF.kg;
-    return {
-      id: `ENC-1000${i}`, codigo_rastreo: `ENC-1000${i}`, createdAt: Date.now() - i * 86400000,
-      viaje_id: r.viajeId, bus_codigo: v ? v.bus_codigo : 'B-001',
-      bus_nombre: v ? v.bus_nombre : 'Unidad 01', ruta_label: v ? v.ruta_label : 'Ruta',
-      tipo: r.tipo, peso_kg: r.peso, descripcion: '',
-      remitente_nombre: r.rNombre, remitente_cedula: r.rCedula, remitente_telefono: r.rTel,
-      destinatario_nombre: r.dNombre, destinatario_cedula: r.dCedula, destinatario_telefono: r.dTel,
-      costo_base: tarifa, costo_peso: +(r.peso * kgRate).toFixed(2),
-      total: +(tarifa + r.peso * kgRate).toFixed(2),
-      estado: r.estado, fecha_registro: r.fecha, fecha_entrega: r.estado === 'Entregado' ? r.fecha : null
-    };
-  });
-}
 
 // ════════════════════════════════════════════════════════
 //  LOAD DATA (Supabase)
@@ -706,10 +633,6 @@ async function loadAllData() {
 }
 
 async function loadViajesSelect() {
-  if (APP_MODE === 'demo') {
-    populateViajesSelect(viajesCache);
-    return;
-  }
   // Load active viajes with bus + ruta + terminal info
   const { data, error } = await sb.from('viaje')
     .select(`id, fecha_salida, estado, peso_carga_actual_kg,
@@ -752,11 +675,6 @@ function populateViajesSelect(viajes) {
 
 async function loadBusesFilter() {
   const sel = document.getElementById('filter-bus');
-  if (APP_MODE === 'demo') {
-    sel.innerHTML = '<option value="">Todos los buses</option>' +
-      DEMO_BUSES.map(b => `<option value="${b.codigo}">${b.nombre}</option>`).join('');
-    return;
-  }
   const { data } = await sb.from('bus').select('id, codigo, nombre').eq('estado', 'activo');
   if (data) {
     sel.innerHTML = '<option value="">Todos los buses</option>' +
@@ -769,7 +687,7 @@ async function loadBusesFilter() {
 //  DASHBOARD
 // ════════════════════════════════════════════════════════
 async function renderDashboard() {
-  if (APP_MODE === 'demo') { renderDashboardDemo(); return; }
+  if (!sb) return;
   // KPIs
   const { data: kpis } = await sb.from('v_dashboard_kpis').select('*').single();
   if (kpis) {
@@ -785,29 +703,6 @@ async function renderDashboard() {
   const { data: recent } = await sb.from('v_encomiendas_detalle')
     .select('*').order('fecha_registro', { ascending: false }).limit(8);
   renderRecentTable(recent || []);
-}
-
-function renderDashboardDemo() {
-  const enc  = demoEncomiendas;
-  const rec  = enc.filter(e => e.estado === 'Entregado').reduce((s, e) => s + e.total, 0);
-  document.getElementById('kpi-total').textContent      = enc.length;
-  document.getElementById('kpi-transito').textContent   = enc.filter(e => e.estado === 'En Tránsito').length;
-  document.getElementById('kpi-entregadas').textContent = enc.filter(e => e.estado === 'Entregado').length;
-  document.getElementById('kpi-recaudacion').textContent= '$' + rec.toFixed(2);
-  // Buses
-  const bodega = DEMO_BUSES.map(b => {
-    const viaje = DEMO_VIAJES.find(v => v.bus_codigo === b.id);
-    const usado  = enc.filter(e => e.bus_codigo === b.id && e.estado !== 'Entregado').reduce((s, e) => s + e.peso_kg, 0);
-    return { bus_nombre: b.nombre, bus_codigo: b.codigo, placa: b.placa, ruta_label: viaje ? viaje.ruta_label : 'Sin ruta', capacidad_bodega_kg: b.capacidad_bodega_kg, peso_usado_kg: usado, peso_disponible_kg: b.capacidad_bodega_kg - usado, porcentaje_uso: Math.round(usado / b.capacidad_bodega_kg * 100 * 10) / 10 };
-  });
-  renderBodegraGrid(bodega);
-  const recent = [...enc].sort((a, b) => b.createdAt - a.createdAt).slice(0, 8);
-  renderRecentTable(recent.map(e => ({
-    codigo_rastreo: e.codigo_rastreo, remitente_nombre: e.remitente_nombre,
-    destinatario_nombre: e.destinatario_nombre, ciudad_origen: e.ruta_label?.split('→')[0]?.trim() || '',
-    ciudad_destino: e.ruta_label?.split('→')[1]?.trim() || '', peso_kg: e.peso_kg,
-    estado: e.estado, total: e.total
-  })));
 }
 
 function renderBodegraGrid(buses) {
@@ -845,16 +740,7 @@ function renderRecentTable(rows) {
 // ════════════════════════════════════════════════════════
 async function lookupPersona(prefix) {
   const cedula = document.getElementById(prefix + '-cedula').value.trim();
-  if (!cedula) return;
-  if (APP_MODE === 'demo') {
-    const existing = demoEncomiendas.find(e => e[prefix === 'r' ? 'remitente_cedula' : 'destinatario_cedula'] === cedula);
-    if (existing) {
-      document.getElementById(prefix + '-nombre').value   = existing[prefix === 'r' ? 'remitente_nombre' : 'destinatario_nombre'];
-      document.getElementById(prefix + '-telefono').value = existing[prefix === 'r' ? 'remitente_telefono' : 'destinatario_telefono'];
-      toast('Persona encontrada y autocompletada', 'info');
-    }
-    return;
-  }
+  if (!cedula || !sb) return;
   const { data } = await sb.from('persona').select('nombres, apellidos, telefono').eq('cedula', cedula).single();
   if (data) {
     document.getElementById(prefix + '-nombre').value   = data.nombres + ' ' + data.apellidos;
@@ -869,7 +755,7 @@ function onViajeChange() {
   const hint = document.getElementById('viaje-bodega-hint');
   if (v) {
     selectedViajeTarifa = { Caja: +v.tarifa_base_caja, Sobre: +v.tarifa_base_sobre, kg: +v.tarifa_por_kg };
-    const libre = v.bodega_libre !== undefined ? +v.bodega_libre : MAX_BODEGA - getDemoPesoUsado(id);
+    const libre = v.bodega_libre !== undefined ? +v.bodega_libre : MAX_BODEGA;
     hint.textContent = `Bodega disponible: ${libre.toFixed(1)} kg de ${MAX_BODEGA} kg`;
     hint.style.color = libre < 50 ? 'var(--danger)' : libre < 100 ? 'var(--warn)' : 'var(--ok)';
   } else {
@@ -877,10 +763,6 @@ function onViajeChange() {
     hint.textContent = '';
   }
   calcCost();
-}
-
-function getDemoPesoUsado(viajeId) {
-  return demoEncomiendas.filter(e => e.viaje_id === viajeId && e.estado !== 'Entregado').reduce((s, e) => s + e.peso_kg, 0);
 }
 
 function calcCost() {
@@ -905,7 +787,7 @@ function checkCargo() {
   wEl.style.display = 'none'; eEl.style.display = 'none';
   if (!vId || !peso) return;
   const v = viajesCache.find(x => x.id === vId);
-  const libre = v ? (v.bodega_libre !== undefined ? +v.bodega_libre : MAX_BODEGA - getDemoPesoUsado(vId)) : MAX_BODEGA;
+  const libre = v ? (v.bodega_libre !== undefined ? +v.bodega_libre : MAX_BODEGA) : MAX_BODEGA;
   if (peso > libre) {
     document.getElementById('cargo-error-msg').textContent = `⛔ El peso (${peso} kg) supera la bodega disponible (${libre.toFixed(1)} kg).`;
     eEl.style.display = 'block';
@@ -940,7 +822,7 @@ async function registrar() {
   if (rCedula === dCedula) { toast('Remitente y destinatario no pueden ser la misma persona.', 'error'); return; }
 
   const v = viajesCache.find(x => x.id === viajeId);
-  const libre = v ? (v.bodega_libre !== undefined ? +v.bodega_libre : MAX_BODEGA - getDemoPesoUsado(viajeId)) : MAX_BODEGA;
+  const libre = v ? (v.bodega_libre !== undefined ? +v.bodega_libre : MAX_BODEGA) : MAX_BODEGA;
   if (peso > libre) { toast('Peso supera la bodega disponible del bus.', 'error'); return; }
 
   const base  = selectedViajeTarifa[tipo] || TARIFA_DEF.Caja;
@@ -951,32 +833,10 @@ async function registrar() {
   btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Registrando...';
 
   try {
-    if (APP_MODE === 'demo') {
-      await registrarDemo({ rCedula, rNombre, rTel, dCedula, dNombre, dTel, viajeId, tipo, peso, desc, metodo, ref, base, kgR, total, v });
-    } else {
-      await registrarSupabase({ rCedula, rNombre, rTel, dCedula, dNombre, dTel, viajeId, tipo, peso, desc, metodo, ref, base, kgR, total });
-    }
+    await registrarSupabase({ rCedula, rNombre, rTel, dCedula, dNombre, dTel, viajeId, tipo, peso, desc, metodo, ref, base, kgR, total });
   } finally {
     btn.disabled = false; btn.innerHTML = '&#x2705; Registrar Encomienda';
   }
-}
-
-async function registrarDemo({ rCedula, rNombre, rTel, dCedula, dNombre, dTel, viajeId, tipo, peso, desc, metodo, ref, base, kgR, total, v }) {
-  const codigo = generarCodigo();
-  demoEncomiendas.push({
-    id: codigo, codigo_rastreo: codigo, createdAt: Date.now(),
-    viaje_id: viajeId, bus_codigo: v?.bus_codigo || '', bus_nombre: v?.bus_nombre || '',
-    ruta_label: v?.ruta_label || '', tipo, peso_kg: peso, descripcion: desc,
-    remitente_nombre: rNombre, remitente_cedula: rCedula, remitente_telefono: rTel,
-    destinatario_nombre: dNombre, destinatario_cedula: dCedula, destinatario_telefono: dTel,
-    costo_base: base, costo_peso: +(peso * kgR).toFixed(2), total,
-    estado: 'Registrado', fecha_registro: new Date().toISOString().split('T')[0], fecha_entrega: null,
-    pago_metodo: metodo, pago_referencia: ref
-  });
-  saveDemoData();
-  toast(`✅ Encomienda ${codigo} registrada exitosamente!`, 'success');
-  resetForm();
-  renderDashboard();
 }
 
 async function registrarSupabase({ rCedula, rNombre, rTel, dCedula, dNombre, dTel, viajeId, tipo, peso, desc, metodo, ref, base, kgR, total }) {
@@ -1011,11 +871,7 @@ async function registrarSupabase({ rCedula, rNombre, rTel, dCedula, dNombre, dTe
 }
 
 function generarCodigo() {
-  const codigo = 'ENC-' + (10000 + Math.floor(Math.random() * 89999));
-  if (APP_MODE === 'demo') {
-    return demoEncomiendas.find(e => e.codigo_rastreo === codigo) ? generarCodigo() : codigo;
-  }
-  return codigo; // Supabase: hay unique constraint como fallback
+  return 'ENC-' + (10000 + Math.floor(Math.random() * 89999));
 }
 
 // ════════════════════════════════════════════════════════
@@ -1028,32 +884,15 @@ async function buscarEncomienda() {
   if (!q) { result.innerHTML = ''; return; }
 
   let enc = null;
-  if (APP_MODE === 'demo') {
-    const raw = demoEncomiendas.find(e => e.codigo_rastreo.toUpperCase() === q);
-    if (raw) enc = mapDemoToView(raw);
-  } else {
-    const { data } = await sb.from('v_encomiendas_detalle').select('*').eq('codigo_rastreo', q).single();
-    enc = data;
-  }
+  if (!sb) { result.innerHTML = ''; return; }
+  const { data } = await sb.from('v_encomiendas_detalle').select('*').eq('codigo_rastreo', q).single();
+  enc = data;
 
   if (!enc) {
     result.innerHTML = `<div class="tracking-card show" style="text-align:center;color:var(--danger)">❌ No se encontró la encomienda <strong>${q}</strong></div>`;
     return;
   }
   result.innerHTML = buildTrackingCard(enc);
-}
-
-function mapDemoToView(e) {
-  return {
-    id: e.id, codigo_rastreo: e.codigo_rastreo,
-    tipo: e.tipo, peso_kg: e.peso_kg, total: e.total,
-    estado: e.estado, fecha_registro: e.fecha_registro, fecha_entrega: e.fecha_entrega,
-    remitente_nombre: e.remitente_nombre, remitente_cedula: e.remitente_cedula,
-    destinatario_nombre: e.destinatario_nombre, destinatario_cedula: e.destinatario_cedula,
-    bus_nombre: e.bus_nombre, ciudad_origen: e.ruta_label?.split('→')[0]?.trim() || '',
-    ciudad_destino: e.ruta_label?.split('→')[1]?.trim() || '',
-    pago_metodo: e.pago_metodo || 'efectivo', pago_estado: 'pagado'
-  };
 }
 
 function buildTrackingCard(enc) {
@@ -1094,12 +933,8 @@ async function renderPending() {
   const tbody = document.getElementById('pending-tbody');
   tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><span class="loader"></span></div></td></tr>';
   let rows = [];
-  if (APP_MODE === 'demo') {
-    rows = demoEncomiendas
-      .filter(e => e.estado !== 'Entregado')
-      .sort((a, b) => ESTADOS.indexOf(a.estado) - ESTADOS.indexOf(b.estado))
-      .map(mapDemoToView);
-  } else {
+  if (!sb) { tbody.innerHTML = ''; return; }
+  {
     const { data } = await sb.from('v_encomiendas_detalle')
       .select('codigo_rastreo,destinatario_nombre,destinatario_cedula,ciudad_origen,ciudad_destino,bus_nombre,estado,total')
       .neq('estado', 'Entregado')
@@ -1120,13 +955,8 @@ async function renderPending() {
 }
 
 async function cambiarEstado(codigo, nuevoEstado) {
-  if (APP_MODE === 'demo') {
-    const enc = demoEncomiendas.find(e => e.codigo_rastreo === codigo);
-    if (!enc) return;
-    enc.estado = nuevoEstado;
-    if (nuevoEstado === 'Entregado') enc.fecha_entrega = new Date().toISOString().split('T')[0];
-    saveDemoData();
-  } else {
+  if (!sb) return;
+  {
     const { error } = await sb.from('encomienda').update({ estado: nuevoEstado }).eq('codigo_rastreo', codigo);
     if (error) { toast('Error: ' + error.message, 'error'); return; }
   }
@@ -1155,7 +985,7 @@ async function confirmarEntrega() {
   const btn = document.getElementById('btn-confirmar-entrega');
 
   let cedEsperada = pendingDeliveryCedula;
-  if (!cedEsperada && APP_MODE !== 'demo') {
+  if (!cedEsperada && sb) {
     const { data } = await sb.from('v_encomiendas_detalle').select('destinatario_cedula').eq('codigo_rastreo', pendingDeliveryId).single();
     cedEsperada = data?.destinatario_cedula;
   }
@@ -1182,25 +1012,14 @@ async function renderTabla() {
   emptyEl.style.display = 'none';
 
   let rows = [];
-  if (APP_MODE === 'demo') {
-    rows = demoEncomiendas
-      .filter(e => {
-        const ms = !search || [e.codigo_rastreo, e.remitente_nombre, e.remitente_cedula, e.destinatario_nombre, e.destinatario_cedula].some(v => (v||'').toLowerCase().includes(search));
-        const me = !estado || e.estado === estado;
-        const mb = !busCodigo || e.bus_codigo === busCodigo;
-        return ms && me && mb;
-      })
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .map(mapDemoToView);
-  } else {
-    let q = sb.from('v_encomiendas_detalle').select('*');
-    if (estado) q = q.eq('estado', estado);
-    if (busCodigo) q = q.eq('bus_codigo', busCodigo);
-    if (search) q = q.or(`codigo_rastreo.ilike.%${search}%,remitente_nombre.ilike.%${search}%,remitente_cedula.ilike.%${search}%,destinatario_nombre.ilike.%${search}%,destinatario_cedula.ilike.%${search}%`);
-    q = q.order('fecha_registro', { ascending: false });
-    const { data } = await q;
-    rows = data || [];
-  }
+  if (!sb) { tbody.innerHTML = ''; return; }
+  let q = sb.from('v_encomiendas_detalle').select('*');
+  if (estado) q = q.eq('estado', estado);
+  if (busCodigo) q = q.eq('bus_codigo', busCodigo);
+  if (search) q = q.or(`codigo_rastreo.ilike.%${search}%,remitente_nombre.ilike.%${search}%,remitente_cedula.ilike.%${search}%,destinatario_nombre.ilike.%${search}%,destinatario_cedula.ilike.%${search}%`);
+  q = q.order('fecha_registro', { ascending: false });
+  const { data } = await q;
+  rows = data || [];
 
   if (!rows.length) { tbody.innerHTML = ''; emptyEl.style.display = 'block'; return; }
   tbody.innerHTML = rows.map(e => `<tr>
