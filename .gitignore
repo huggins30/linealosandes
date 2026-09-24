@@ -1,5 +1,4 @@
 # Credenciales y configuración privada de Supabase
-supabase.config.js
 clavebasedatos.txt
 .env
 .env.*

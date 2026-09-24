@@ -235,7 +235,6 @@
     <div class="form-group"><label>Correo electr&#xF3;nico</label><input id="login-email" type="email" placeholder="operador@empresa.com" autocomplete="email"></div>
     <div class="form-group"><label>Contrase&#xF1;a</label><input id="login-password" type="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <button class="btn btn-primary" id="btn-login" onclick="doLogin()">Iniciar Sesi&#xF3;n</button>
-    <button class="btn btn-secondary login-config-btn" onclick="openConfigModal()">&#x2699;&#xFE0F; Configurar Conexi&#xF3;n Supabase</button>
     <div id="login-error" class="login-error"></div>
   </div>
 </div>
@@ -587,7 +586,6 @@ async function onLogin(user) {
   closeConfigModal();
   closeModal();
   currentUser = user;
-  APP_MODE = 'supabase';
   await loadPerfil();
   hideLoginScreen();
   updateUserDisplay();
