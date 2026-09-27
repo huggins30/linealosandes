@@ -797,8 +797,12 @@ function checkCargo() {
 
 function resetForm() {
   ['r-cedula','r-nombre','r-telefono','d-cedula','d-nombre','d-telefono','e-peso','e-descripcion','e-referencia']
-    .forEach(id => document.getElementById(id).value = '');
-  document.getElementById('e-viaje').value = '';
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.value = ''; el.style.borderColor = ''; }
+    });
+  const elViaje = document.getElementById('e-viaje');
+  if (elViaje) { elViaje.value = ''; elViaje.style.borderColor = ''; }
   document.getElementById('e-tipo').value  = 'Caja';
   document.getElementById('cargo-warning').style.display = 'none';
   document.getElementById('cargo-error').style.display   = 'none';
@@ -814,14 +818,59 @@ async function registrar() {
   const viajeId  = g('e-viaje'), tipo = g('e-tipo'), peso = parseFloat(g('e-peso'));
   const desc     = g('e-descripcion'), metodo = g('e-metodo'), ref = g('e-referencia');
 
-  if (!rCedula||!rNombre||!dCedula||!dNombre||!viajeId||!peso) {
-    toast('Complete todos los campos obligatorios.', 'error'); return;
+  // Limpiar estilos de error previos
+  ['r-cedula','r-nombre','d-cedula','d-nombre','e-viaje','e-peso'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.borderColor = '';
+  });
+
+  const markError = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.borderColor = 'var(--danger)';
+      el.focus();
+    }
+  };
+
+  if (!rCedula || !rNombre) {
+    if (!rCedula) markError('r-cedula');
+    else markError('r-nombre');
+    toast('Complete los datos del Remitente (cédula y nombre son obligatorios).', 'error');
+    return;
   }
-  if (rCedula === dCedula) { toast('Remitente y destinatario no pueden ser la misma persona.', 'error'); return; }
+  if (!dCedula || !dNombre) {
+    if (!dCedula) markError('d-cedula');
+    else markError('d-nombre');
+    toast('Complete los datos del Destinatario (cédula y nombre son obligatorios).', 'error');
+    return;
+  }
+  if (rCedula.toLowerCase().trim() === dCedula.toLowerCase().trim()) {
+    markError('d-cedula');
+    toast('El remitente y destinatario no pueden tener la misma cédula.', 'error');
+    return;
+  }
+  if (!viajeId) {
+    markError('e-viaje');
+    if (!viajesCache.length) {
+      toast('No hay viajes programados disponibles. Debe haber al menos un viaje activo.', 'error');
+    } else {
+      toast('Seleccione un Viaje / Bus Asignado para la encomienda.', 'error');
+    }
+    return;
+  }
+  if (!peso || isNaN(peso) || peso <= 0) {
+    markError('e-peso');
+    toast('Ingrese un peso válido mayor a 0 kg.', 'error');
+    return;
+  }
 
   const v = viajesCache.find(x => x.id === viajeId);
   const libre = v ? (v.bodega_libre !== undefined ? +v.bodega_libre : MAX_BODEGA) : MAX_BODEGA;
-  if (peso > libre) { toast('Peso supera la bodega disponible del bus.', 'error'); return; }
+  if (peso > libre) {
+    markError('e-peso');
+    toast(`El peso (${peso} kg) supera la bodega disponible (${libre.toFixed(1)} kg).`, 'error');
+    return;
+  }
 
   const base  = selectedViajeTarifa[tipo] || TARIFA_DEF.Caja;
   const kgR   = selectedViajeTarifa.kg || TARIFA_DEF.kg;
@@ -1085,6 +1134,15 @@ function toast(msg, type = 'success') {
 // ── Modal backdrop
 document.getElementById('modal-cedula').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
 document.getElementById('modal-config').addEventListener('click', e => { if (e.target === e.currentTarget) closeConfigModal(); });
+
+// ── Auto-clear error borders on input
+['r-cedula','r-nombre','d-cedula','d-nombre','e-viaje','e-peso'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener('input', () => { el.style.borderColor = ''; });
+    if (el.tagName === 'SELECT') el.addEventListener('change', () => { el.style.borderColor = ''; });
+  }
+});
 
 // ── Boot
 init();
