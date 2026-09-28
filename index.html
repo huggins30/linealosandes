@@ -100,6 +100,20 @@
   .capacity-fill.full{background:linear-gradient(90deg,var(--danger),#c0392b)}
   .capacity-label{font-size:.7rem;color:var(--text2);display:flex;justify-content:space-between}
 
+  /* ── CRUD MODULES ── */
+  .module-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap}
+  .module-toolbar input{flex:1;min-width:180px}
+  .module-table-wrap{overflow-x:auto}
+  .chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:.65rem;font-weight:700}
+  .chip.active{background:rgba(61,214,140,.18);color:var(--ok)}
+  .chip.inactive{background:rgba(240,92,92,.18);color:var(--danger)}
+  .action-btns{display:flex;gap:6px}
+  .btn-icon{background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);cursor:pointer;padding:4px 8px;font-size:.78rem;transition:all .18s}
+  .btn-icon:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-icon.del:hover{border-color:var(--danger);color:var(--danger)}
+  .modal-lg{max-width:560px!important}
+  .form-grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+
   /* ── CARDS / TABLES ── */
   .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
   .card-header{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
@@ -249,6 +263,8 @@
   </div>
   <nav>
     <button class="nav-item active" onclick="navigate('dashboard',this)"><span class="icon">&#x1F4CA;</span> Dashboard</button>
+    <button class="nav-item" onclick="navigate('choferes',this)"><span class="icon">&#x1F464;</span> Choferes</button>
+    <button class="nav-item" onclick="navigate('unidades',this)"><span class="icon">&#x1F68C;</span> Unidades</button>
     <button class="nav-item" onclick="navigate('registro',this)"><span class="icon">&#x1F4E6;</span> Registrar Encomienda</button>
     <button class="nav-item" onclick="navigate('seguimiento',this)"><span class="icon">&#x1F50D;</span> Seguimiento</button>
     <button class="nav-item" onclick="navigate('tabla',this)"><span class="icon">&#x1F4CB;</span> Tabla General</button>
@@ -290,42 +306,117 @@
     </div>
   </div>
 
+  <!-- CHOFERES -->
+  <div id="view-choferes" class="view">
+    <div class="page-header">
+      <h2>&#x1F464; Gestión de Choferes</h2>
+      <p>Administre el registro de conductores de la línea</p>
+    </div>
+    <div class="module-toolbar">
+      <input id="chofer-search" placeholder="&#x1F50D; Buscar por cédula, nombre, teléfono..." oninput="renderChoferes()">
+      <select id="chofer-filter-activo" onchange="renderChoferes()">
+        <option value="">Todos</option>
+        <option value="true">Activos</option>
+        <option value="false">Inactivos</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="openChoferModal()">&#x2795; Nuevo Chofer</button>
+    </div>
+    <div class="card">
+      <div class="module-table-wrap">
+        <table>
+          <thead><tr><th>Cédula</th><th>Nombres</th><th>Apellidos</th><th>Teléfono</th><th>Correo</th><th>Domicilio</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="choferes-tbody"><tr><td colspan="8"><div class="empty-state"><span class="loader"></span></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="choferes-empty" class="empty-state" style="display:none"><div class="icon">&#x1F464;</div><p>No se encontraron choferes</p></div>
+  </div>
+
+  <!-- UNIDADES -->
+  <div id="view-unidades" class="view">
+    <div class="page-header">
+      <h2>&#x1F68C; Gestión de Unidades</h2>
+      <p>Administre el registro de vehículos de la línea</p>
+    </div>
+    <div class="module-toolbar">
+      <input id="unidad-search" placeholder="&#x1F50D; Buscar por número, placa, tipo, propietario..." oninput="renderUnidades()">
+      <select id="unidad-filter-tipo" onchange="renderUnidades()">
+        <option value="">Todos los tipos</option>
+        <option value="Bus">Bus</option>
+        <option value="Minibus">Minibús</option>
+        <option value="Van">Van</option>
+        <option value="Camion">Camión</option>
+        <option value="Otro">Otro</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="openUnidadModal()">&#x2795; Nueva Unidad</button>
+    </div>
+    <div class="card">
+      <div class="module-table-wrap">
+        <table>
+          <thead><tr><th>N° Unidad</th><th>Placa</th><th>Tipo</th><th>Puestos</th><th>Propietario</th><th>Cédula</th><th>Teléfono</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="unidades-tbody"><tr><td colspan="9"><div class="empty-state"><span class="loader"></span></div></td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="unidades-empty" class="empty-state" style="display:none"><div class="icon">&#x1F68C;</div><p>No se encontraron unidades</p></div>
+  </div>
+
   <!-- REGISTRO -->
   <div id="view-registro" class="view">
     <div class="page-header"><h2>Registrar Encomienda</h2><p>Complete el formulario para registrar un nuevo env&#xED;o</p></div>
     <div class="card" style="padding:26px;position:relative">
       <p class="form-section-label">Remitente</p>
       <div class="form-grid">
-        <div class="form-group"><label>C&#xE9;dula / DNI</label>
-          <div class="input-icon-wrap"><input id="r-cedula" placeholder="V-12345678" onblur="lookupPersona('r')"><button class="icon-btn" onclick="lookupPersona('r')" title="Buscar">&#x1F50D;</button></div>
-          <span class="field-hint">Ingrese la c&#xE9;dula y presione Tab para buscar</span>
+        <div class="form-group"><label>Cédula / DNI / RIF</label>
+          <div class="input-icon-wrap"><input id="r-cedula" placeholder="V-12345678" onblur="lookupPersona('r')"><button class="icon-btn" onclick="lookupPersona('r')" title="Buscar">🔍</button></div>
+          <span class="field-hint">Ingrese la cédula y presione Tab para buscar</span>
         </div>
         <div class="form-group"><label>Nombre completo</label><input id="r-nombre" placeholder="Nombre y apellido"></div>
-        <div class="form-group"><label>Tel&#xE9;fono</label><input id="r-telefono" placeholder="+58 412 000 0000"></div>
+        <div class="form-group"><label>Teléfono</label><input id="r-telefono" placeholder="+58 412 000 0000"></div>
+        <div class="form-group"><label>Domicilio Fiscal</label><input id="r-domicilio" placeholder="Av. Principal, Edif., Piso, Local..."></div>
       </div>
       <hr class="section-sep">
       <p class="form-section-label">Destinatario</p>
       <div class="form-grid">
-        <div class="form-group"><label>C&#xE9;dula / DNI</label>
-          <div class="input-icon-wrap"><input id="d-cedula" placeholder="V-87654321" onblur="lookupPersona('d')"><button class="icon-btn" onclick="lookupPersona('d')" title="Buscar">&#x1F50D;</button></div>
+        <div class="form-group"><label>Cédula / DNI / RIF</label>
+          <div class="input-icon-wrap"><input id="d-cedula" placeholder="V-87654321" onblur="lookupPersona('d')"><button class="icon-btn" onclick="lookupPersona('d')" title="Buscar">🔍</button></div>
         </div>
         <div class="form-group"><label>Nombre completo</label><input id="d-nombre" placeholder="Nombre y apellido"></div>
-        <div class="form-group"><label>Tel&#xE9;fono</label><input id="d-telefono" placeholder="+58 424 000 0000"></div>
+        <div class="form-group"><label>Teléfono</label><input id="d-telefono" placeholder="+58 424 000 0000"></div>
+        <div class="form-group"><label>Domicilio Fiscal</label><input id="d-domicilio" placeholder="Calle, Centro Comercial, Residencia..."></div>
       </div>
       <hr class="section-sep">
-      <p class="form-section-label">Datos del Env&#xED;o</p>
+      <p class="form-section-label">Datos del Envío</p>
       <div class="form-grid">
         <div class="form-group"><label>Viaje / Bus Asignado</label>
           <select id="e-viaje" onchange="onViajeChange()"><option value="">Cargando viajes...</option></select>
           <span class="field-hint" id="viaje-bodega-hint"></span>
         </div>
+        <div class="form-group"><label>Unidad</label>
+          <input id="e-unidad" list="lista-unidades" placeholder="Ej: Unidad 01 (B-001)">
+          <datalist id="lista-unidades"></datalist>
+          <span class="field-hint">Seleccione o escriba la unidad asignada</span>
+        </div>
+        <div class="form-group"><label>Cédula Conductor</label>
+          <div class="input-icon-wrap">
+            <input id="e-conductor-cedula" placeholder="V-12345678" onblur="lookupConductor()" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupConductor();}">
+            <button class="icon-btn" type="button" onclick="lookupConductor()" title="Buscar Conductor">🔍</button>
+          </div>
+          <span class="field-hint">Presione Tab o Enter para buscar conductor</span>
+        </div>
+        <div class="form-group"><label>Nombres y Apellidos del Conductor</label>
+          <input id="e-conductor-nombre" placeholder="Nombres y apellidos completos">
+        </div>
+        <div class="form-group"><label>Hora del Envío</label>
+          <input id="e-hora-envio" type="time">
+        </div>
         <div class="form-group"><label>Tipo</label>
           <select id="e-tipo" onchange="calcCost()"><option value="Caja">Caja</option><option value="Sobre">Sobre</option></select>
         </div>
         <div class="form-group"><label>Peso (kg)</label><input id="e-peso" type="number" min="0.1" step="0.1" placeholder="0.0" oninput="calcCost()"></div>
-        <div class="form-group"><label>Descripci&#xF3;n del contenido</label><input id="e-descripcion" placeholder="Ropa, documentos, etc."></div>
-        <div class="form-group"><label>M&#xE9;todo de Pago</label>
-          <select id="e-metodo"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="pago_movil">Pago M&#xF3;vil</option><option value="tarjeta">Tarjeta</option><option value="zelle">Zelle</option></select>
+        <div class="form-group"><label>Descripción del contenido</label><input id="e-descripcion" placeholder="Ropa, documentos, etc."></div>
+        <div class="form-group"><label>Método de Pago</label>
+          <select id="e-metodo"><option value="efectivo">Efectivo</option><option value="transferencia">Transferencia</option><option value="pago_movil">Pago Móvil</option><option value="tarjeta">Tarjeta</option><option value="zelle">Zelle</option></select>
         </div>
         <div class="form-group"><label>Referencia de Pago</label><input id="e-referencia" placeholder="Nro. de referencia (opcional)"></div>
       </div>
@@ -375,7 +466,7 @@
       <select id="filter-bus" onchange="renderTabla()"><option value="">Todos los buses</option></select>
     </div>
     <div class="card"><div style="overflow-x:auto">
-      <table><thead><tr><th>C&#xF3;digo</th><th>Remitente</th><th>Destinatario</th><th>Ruta</th><th>Bus</th><th>Tipo</th><th>Peso</th><th>Estado</th><th>Total</th><th>Fecha</th></tr></thead>
+      <table><thead><tr><th>Código</th><th>Remitente</th><th>Destinatario</th><th>Ruta</th><th>Unidad</th><th>Conductor</th><th>Hora</th><th>Tipo</th><th>Peso</th><th>Estado</th><th>Total</th><th>Fecha</th></tr></thead>
       <tbody id="tabla-tbody"></tbody></table>
     </div></div>
     <div id="tabla-empty" class="empty-state" style="display:none"><div class="icon">&#x1F4ED;</div><p>No se encontraron encomiendas</p></div>
@@ -391,6 +482,89 @@
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
       <button class="btn btn-success" id="btn-confirmar-entrega" onclick="confirmarEntrega()">&#x2705; Confirmar Entrega</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CHOFER (Crear / Editar) -->
+<div class="modal-overlay" id="modal-chofer">
+  <div class="modal modal-lg">
+    <h3 id="modal-chofer-title">&#x1F464; Nuevo Chofer</h3>
+    <p id="modal-chofer-subtitle">Complete los datos del conductor</p>
+    <input type="hidden" id="chofer-id">
+    <div class="form-grid-3">
+      <div class="form-group"><label>Cédula / DNI</label><input id="chofer-cedula" placeholder="V-12345678"></div>
+      <div class="form-group"><label>Nombres</label><input id="chofer-nombres" placeholder="José Gregorio"></div>
+      <div class="form-group"><label>Apellidos</label><input id="chofer-apellidos" placeholder="Ramírez Peña"></div>
+      <div class="form-group"><label>Teléfono</label><input id="chofer-telefono" placeholder="+58 414 000 0000"></div>
+      <div class="form-group"><label>Correo Electrónico</label><input id="chofer-correo" type="email" placeholder="chofer@ejemplo.com"></div>
+      <div class="form-group"><label>Licencia</label><input id="chofer-licencia" placeholder="5ta-123456"></div>
+    </div>
+    <div class="form-group" style="margin-top:12px"><label>Domicilio</label><input id="chofer-domicilio" placeholder="Av. Principal, Edif., Apto..."></div>
+    <div class="form-group" style="margin-top:12px">
+      <label>Estado</label>
+      <select id="chofer-activo">
+        <option value="true">Activo</option>
+        <option value="false">Inactivo</option>
+      </select>
+    </div>
+    <div class="modal-actions" style="margin-top:18px">
+      <button class="btn btn-secondary" onclick="closeChoferModal()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-chofer" onclick="guardarChofer()">&#x1F4BE; Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UNIDAD (Crear / Editar) -->
+<div class="modal-overlay" id="modal-unidad">
+  <div class="modal modal-lg">
+    <h3 id="modal-unidad-title">&#x1F68C; Nueva Unidad</h3>
+    <p id="modal-unidad-subtitle">Complete los datos del vehículo</p>
+    <input type="hidden" id="unidad-id">
+    <p class="form-section-label" style="margin-bottom:10px">Datos del Vehículo</p>
+    <div class="form-grid-3">
+      <div class="form-group"><label>N° de Unidad</label><input id="unidad-numero" placeholder="Ej: 001"></div>
+      <div class="form-group"><label>Placa</label><input id="unidad-placa" placeholder="AB123CD"></div>
+      <div class="form-group"><label>Tipo de Unidad</label>
+        <select id="unidad-tipo">
+          <option value="Bus">Bus</option>
+          <option value="Minibus">Minibús</option>
+          <option value="Van">Van</option>
+          <option value="Camion">Camión</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
+      <div class="form-group"><label>N° de Puestos</label><input id="unidad-puestos" type="number" min="1" placeholder="30"></div>
+      <div class="form-group"><label>Estado</label>
+        <select id="unidad-activo">
+          <option value="true">Activo</option>
+          <option value="false">Inactivo</option>
+        </select>
+      </div>
+    </div>
+    <hr class="section-sep">
+    <p class="form-section-label" style="margin-bottom:10px">Datos del Propietario</p>
+    <div class="form-grid-3">
+      <div class="form-group"><label>Cédula / DNI</label><input id="unidad-prop-cedula" placeholder="V-87654321"></div>
+      <div class="form-group"><label>Nombres</label><input id="unidad-prop-nombres" placeholder="Carlos"></div>
+      <div class="form-group"><label>Apellidos</label><input id="unidad-prop-apellidos" placeholder="González"></div>
+      <div class="form-group" style="grid-column:span 2"><label>Teléfono</label><input id="unidad-prop-telefono" placeholder="+58 412 000 0000"></div>
+    </div>
+    <div class="modal-actions" style="margin-top:18px">
+      <button class="btn btn-secondary" onclick="closeUnidadModal()">Cancelar</button>
+      <button class="btn btn-primary" id="btn-guardar-unidad" onclick="guardarUnidad()">&#x1F4BE; Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIRMACIÓN ELIMINAR -->
+<div class="modal-overlay" id="modal-confirmar-eliminar">
+  <div class="modal">
+    <h3>&#x26A0;&#xFE0F; Confirmar eliminación</h3>
+    <p id="modal-eliminar-msg">¿Está seguro de eliminar este registro?</p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeEliminarModal()">Cancelar</button>
+      <button class="btn" style="background:var(--danger);color:#fff" id="btn-confirmar-eliminar" onclick="confirmarEliminar()">&#x1F5D1;&#xFE0F; Eliminar</button>
     </div>
   </div>
 </div>
@@ -467,6 +641,7 @@ let busesCache          = [];
 let selectedViajeTarifa = { ...TARIFA_DEF };
 let pendingDeliveryId   = null;
 let pendingDeliveryCedula = null;
+let realtimeChannel     = null;  // Referencia al canal de tiempo real
 
 // ════════════════════════════════════════════════════════
 //  INIT
@@ -627,7 +802,26 @@ function updateUserDisplay() {
 //  LOAD DATA (Supabase)
 // ════════════════════════════════════════════════════════
 async function loadAllData() {
-  await Promise.all([loadViajesSelect(), loadBusesFilter()]);
+  await Promise.all([loadViajesSelect(), loadBusesFilter(), loadUnidadesDatalist()]);
+}
+
+// Carga las unidades registradas en el módulo Unidades para el campo del formulario
+async function loadUnidadesDatalist() {
+  const dl = document.getElementById('lista-unidades');
+  if (!dl || !sb) return;
+  const { data } = await sb.from('unidad')
+    .select('numero_unidad, placa, tipo')
+    .eq('activo', true)
+    .order('numero_unidad');
+  if (data && data.length) {
+    dl.innerHTML = data.map(u => {
+      const label = `Unidad ${u.numero_unidad}${u.placa ? ' (' + u.placa + ')' : ''}`;
+      return `<option value="${label}">${u.tipo || ''}</option>`;
+    }).join('');
+  } else {
+    // Si no hay unidades registradas, mantiene vacío el datalist
+    dl.innerHTML = '';
+  }
 }
 
 async function loadViajesSelect() {
@@ -673,7 +867,7 @@ function populateViajesSelect(viajes) {
 
 async function loadBusesFilter() {
   const sel = document.getElementById('filter-bus');
-  const { data } = await sb.from('bus').select('id, codigo, nombre').eq('estado', 'activo');
+  const { data } = await sb.from('bus').select('id, codigo, nombre, placa').eq('estado', 'activo');
   if (data) {
     sel.innerHTML = '<option value="">Todos los buses</option>' +
       data.map(b => `<option value="${b.codigo}">${b.nombre}</option>`).join('');
@@ -739,23 +933,89 @@ function renderRecentTable(rows) {
 async function lookupPersona(prefix) {
   const cedula = document.getElementById(prefix + '-cedula').value.trim();
   if (!cedula || !sb) return;
-  const { data } = await sb.from('persona').select('nombres, apellidos, telefono').eq('cedula', cedula).single();
+  const { data } = await sb.from('persona')
+    .select('nombres, apellidos, telefono, domicilio_fiscal')
+    .eq('cedula', cedula)
+    .maybeSingle();
   if (data) {
-    document.getElementById(prefix + '-nombre').value   = data.nombres + ' ' + data.apellidos;
+    document.getElementById(prefix + '-nombre').value   = (data.nombres + ' ' + (data.apellidos || '')).trim();
     document.getElementById(prefix + '-telefono').value = data.telefono || '';
+    if (data.domicilio_fiscal) {
+      document.getElementById(prefix + '-domicilio').value = data.domicilio_fiscal;
+    }
     toast('Persona encontrada en el sistema', 'info');
   }
+}
+
+// Búsqueda automática de conductor por cédula
+async function lookupConductor() {
+  const cedulaInput = document.getElementById('e-conductor-cedula');
+  const nombreInput = document.getElementById('e-conductor-nombre');
+  const cedula = cedulaInput.value.trim();
+  if (!cedula || !sb) return;
+
+  // 1. Buscar en la nueva tabla 'chofer'
+  let { data } = await sb.from('chofer')
+    .select('id, cedula, nombres, apellidos, telefono')
+    .ilike('cedula', cedula)
+    .maybeSingle();
+
+  // 2. Si no se encuentra en 'chofer', buscar en tabla 'conductor'
+  if (!data) {
+    const { data: cData } = await sb.from('conductor')
+      .select('id, cedula, nombres, apellidos, telefono')
+      .ilike('cedula', cedula)
+      .maybeSingle();
+    if (cData) data = cData;
+  }
+
+  // 3. Si no se encuentra, buscar en tabla 'persona'
+  if (!data) {
+    const { data: pData } = await sb.from('persona')
+      .select('id, cedula, nombres, apellidos, telefono')
+      .ilike('cedula', cedula)
+      .maybeSingle();
+    if (pData) data = pData;
+  }
+
+  if (data) {
+    const nombreCompleto = `${data.nombres || ''} ${data.apellidos || ''}`.trim();
+    nombreInput.value = nombreCompleto;
+    nombreInput.dataset.conductorId = data.id || '';
+    toast(`Conductor localizado: ${nombreCompleto}`, 'info');
+  } else {
+    toast('Conductor no registrado. Ingrese nombres y apellidos manualmente.', 'warn');
+    delete nombreInput.dataset.conductorId;
+    nombreInput.focus();
+  }
+}
+
+function setCurrentTimeInput() {
+  const el = document.getElementById('e-hora-envio');
+  if (!el) return;
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  el.value = `${hh}:${mm}`;
 }
 
 function onViajeChange() {
   const id = document.getElementById('e-viaje').value;
   const v  = viajesCache.find(x => x.id === id);
   const hint = document.getElementById('viaje-bodega-hint');
+  const unidadInput = document.getElementById('e-unidad');
+
   if (v) {
     selectedViajeTarifa = { Caja: +v.tarifa_base_caja, Sobre: +v.tarifa_base_sobre, kg: +v.tarifa_por_kg };
     const libre = v.bodega_libre !== undefined ? +v.bodega_libre : MAX_BODEGA;
     hint.textContent = `Bodega disponible: ${libre.toFixed(1)} kg de ${MAX_BODEGA} kg`;
     hint.style.color = libre < 50 ? 'var(--danger)' : libre < 100 ? 'var(--warn)' : 'var(--ok)';
+    
+    // Autocompletar la Unidad asignada al viaje
+    if (unidadInput && (!unidadInput.value || unidadInput.dataset.autoFilled === 'true')) {
+      unidadInput.value = v.bus_nombre ? `${v.bus_nombre} (${v.bus_codigo || ''})` : (v.bus_codigo || '');
+      unidadInput.dataset.autoFilled = 'true';
+    }
   } else {
     selectedViajeTarifa = { ...TARIFA_DEF };
     hint.textContent = '';
@@ -796,27 +1056,37 @@ function checkCargo() {
 }
 
 function resetForm() {
-  ['r-cedula','r-nombre','r-telefono','d-cedula','d-nombre','d-telefono','e-peso','e-descripcion','e-referencia']
+  ['r-cedula','r-nombre','r-telefono','r-domicilio',
+   'd-cedula','d-nombre','d-telefono','d-domicilio',
+   'e-unidad','e-conductor-cedula','e-conductor-nombre',
+   'e-peso','e-descripcion','e-referencia']
     .forEach(id => {
       const el = document.getElementById(id);
       if (el) { el.value = ''; el.style.borderColor = ''; }
     });
   const elViaje = document.getElementById('e-viaje');
   if (elViaje) { elViaje.value = ''; elViaje.style.borderColor = ''; }
+  const condNombre = document.getElementById('e-conductor-nombre');
+  if (condNombre) delete condNombre.dataset.conductorId;
+  const unidadInput = document.getElementById('e-unidad');
+  if (unidadInput) delete unidadInput.dataset.autoFilled;
   document.getElementById('e-tipo').value  = 'Caja';
   document.getElementById('cargo-warning').style.display = 'none';
   document.getElementById('cargo-error').style.display   = 'none';
   document.getElementById('viaje-bodega-hint').textContent = '';
   selectedViajeTarifa = { ...TARIFA_DEF };
+  setCurrentTimeInput();
   calcCost();
 }
 
 async function registrar() {
   const g = id => document.getElementById(id).value.trim();
-  const rCedula  = g('r-cedula'), rNombre = g('r-nombre'), rTel = g('r-telefono');
-  const dCedula  = g('d-cedula'), dNombre = g('d-nombre'), dTel = g('d-telefono');
-  const viajeId  = g('e-viaje'), tipo = g('e-tipo'), peso = parseFloat(g('e-peso'));
-  const desc     = g('e-descripcion'), metodo = g('e-metodo'), ref = g('e-referencia');
+  const rCedula    = g('r-cedula'), rNombre = g('r-nombre'), rTel = g('r-telefono'), rDomicilio = g('r-domicilio');
+  const dCedula    = g('d-cedula'), dNombre = g('d-nombre'), dTel = g('d-telefono'), dDomicilio = g('d-domicilio');
+  const viajeId    = g('e-viaje'), tipo = g('e-tipo'), peso = parseFloat(g('e-peso'));
+  const desc       = g('e-descripcion'), metodo = g('e-metodo'), ref = g('e-referencia');
+  const unidad     = g('e-unidad'), condCedula = g('e-conductor-cedula'), condNombre = g('e-conductor-nombre');
+  const horaEnvio  = g('e-hora-envio');
 
   // Limpiar estilos de error previos
   ['r-cedula','r-nombre','d-cedula','d-nombre','e-viaje','e-peso'].forEach(id => {
@@ -880,36 +1150,137 @@ async function registrar() {
   btn.disabled = true; btn.innerHTML = '<span class="loader"></span> Registrando...';
 
   try {
-    await registrarSupabase({ rCedula, rNombre, rTel, dCedula, dNombre, dTel, viajeId, tipo, peso, desc, metodo, ref, base, kgR, total });
+    await registrarSupabase({
+      rCedula, rNombre, rTel, rDomicilio,
+      dCedula, dNombre, dTel, dDomicilio,
+      viajeId, unidad, condCedula, condNombre, horaEnvio,
+      tipo, peso, desc, metodo, ref, base, kgR, total
+    });
   } finally {
     btn.disabled = false; btn.innerHTML = '&#x2705; Registrar Encomienda';
   }
 }
 
-async function registrarSupabase({ rCedula, rNombre, rTel, dCedula, dNombre, dTel, viajeId, tipo, peso, desc, metodo, ref, base, kgR, total }) {
-  // Upsert personas
+async function registrarSupabase({
+  rCedula, rNombre, rTel, rDomicilio,
+  dCedula, dNombre, dTel, dDomicilio,
+  viajeId, unidad, condCedula, condNombre, horaEnvio,
+  tipo, peso, desc, metodo, ref, base, kgR, total
+}) {
   const nombres = n => n.split(' ').slice(0, -1).join(' ') || n;
   const apellidos = n => n.split(' ').slice(-1).join(' ');
 
-  const upsert = async (cedula, nombre, telefono) => {
-    const { data } = await sb.from('persona').upsert({ cedula, nombres: nombres(nombre), apellidos: apellidos(nombre), telefono }, { onConflict: 'cedula' }).select('id').single();
+  const upsert = async (cedula, nombre, telefono, domicilio_fiscal) => {
+    const payload = {
+      cedula,
+      nombres: nombres(nombre),
+      apellidos: apellidos(nombre),
+      telefono
+    };
+    if (domicilio_fiscal) {
+      payload.domicilio_fiscal = domicilio_fiscal;
+    }
+    const { data } = await sb.from('persona').upsert(payload, { onConflict: 'cedula' }).select('id').single();
     return data?.id;
   };
 
-  const [remId, desId] = await Promise.all([upsert(rCedula, rNombre, rTel), upsert(dCedula, dNombre, dTel)]);
+  const [remId, desId] = await Promise.all([
+    upsert(rCedula, rNombre, rTel, rDomicilio),
+    upsert(dCedula, dNombre, dTel, dDomicilio)
+  ]);
   if (!remId || !desId) { toast('Error al registrar personas.', 'error'); return; }
 
+  // Gestión de conductor en tabla chofer (con fallback a conductor)
+  let conductorId = document.getElementById('e-conductor-nombre').dataset.conductorId || null;
+  if (!conductorId && condCedula && condNombre) {
+    try {
+      const choferPayload = {
+        cedula: condCedula,
+        nombres: nombres(condNombre),
+        apellidos: apellidos(condNombre),
+        activo: true
+      };
+      if (currentPerfil?.empresa_id) choferPayload.empresa_id = currentPerfil.empresa_id;
+      
+      const { data: chData, error: chErr } = await sb.from('chofer')
+        .upsert(choferPayload, { onConflict: 'cedula' })
+        .select('id')
+        .maybeSingle();
+      if (chData?.id) {
+        conductorId = chData.id;
+      } else if (chErr) {
+        // Fallback a conductor si chofer aún no existe
+        const { data: condData } = await sb.from('conductor')
+          .upsert(choferPayload, { onConflict: 'cedula' })
+          .select('id')
+          .maybeSingle();
+        if (condData?.id) conductorId = condData.id;
+      }
+    } catch (e) {
+      console.warn('Conductor no guardado:', e);
+    }
+  }
+
   const codigo = generarCodigo();
-  const { data: enc, error } = await sb.from('encomienda').insert({
-    codigo_rastreo: codigo, viaje_id: viajeId, remitente_id: remId, destinatario_id: desId,
+  const insertPayload = {
+    codigo_rastreo: codigo,
+    viaje_id: viajeId,
+    remitente_id: remId,
+    destinatario_id: desId,
     registrado_por: currentPerfil?.id || null,
-    tipo, peso_kg: peso, descripcion: desc,
-    costo_base: base, costo_peso: +(peso * kgR).toFixed(2), total, estado: 'Registrado'
-  }).select('id').single();
+    tipo,
+    peso_kg: peso,
+    descripcion: desc,
+    costo_base: base,
+    costo_peso: +(peso * kgR).toFixed(2),
+    total,
+    estado: 'Registrado',
+    unidad: unidad || null,
+    conductor_id: conductorId || null,
+    conductor_cedula: condCedula || null,
+    conductor_nombre: condNombre || null,
+    hora_envio: horaEnvio || null,
+    remitente_domicilio_fiscal: rDomicilio || null,
+    destinatario_domicilio_fiscal: dDomicilio || null
+  };
+
+  let { data: enc, error } = await sb.from('encomienda').insert(insertPayload).select('id').single();
+
+  // Si aún no se han aplicado las nuevas columnas en la tabla encomienda, realizar inserción de respaldo
+  if (error && (error.message?.includes('column') || error.code === '42703' || error.code === 'PGRST204')) {
+    console.warn('Columnas nuevas no detectadas en tabla encomienda. Insertando versión básica...', error);
+    const basicPayload = {
+      codigo_rastreo: codigo,
+      viaje_id: viajeId,
+      remitente_id: remId,
+      destinatario_id: desId,
+      registrado_por: currentPerfil?.id || null,
+      tipo,
+      peso_kg: peso,
+      descripcion: desc,
+      costo_base: base,
+      costo_peso: +(peso * kgR).toFixed(2),
+      total,
+      estado: 'Registrado'
+    };
+    const resBasic = await sb.from('encomienda').insert(basicPayload).select('id').single();
+    enc = resBasic.data;
+    error = resBasic.error;
+    if (!error) {
+      toast('⚠️ Encomienda registrada. Recuerda ejecutar actualizar_tablas_encomienda.sql en Supabase para habilitar todos los campos.', 'warn');
+    }
+  }
+
   if (error) { toast('Error al registrar encomienda: ' + error.message, 'error'); return; }
 
   // Pago
-  await sb.from('pago').insert({ encomienda_id: enc.id, metodo, monto: total, referencia: ref || null, registrado_por: currentPerfil?.id || null });
+  await sb.from('pago').insert({
+    encomienda_id: enc.id,
+    metodo,
+    monto: total,
+    referencia: ref || null,
+    registrado_por: currentPerfil?.id || null
+  });
 
   toast(`✅ Encomienda ${codigo} registrada exitosamente!`, 'success');
   resetForm();
@@ -960,15 +1331,25 @@ function buildTrackingCard(enc) {
 
   return `<div class="tracking-card show">
     <div class="tracking-header">
-      <div class="tracking-meta"><span class="tracking-code" style="font-size:.95rem">${enc.codigo_rastreo}</span><p>${enc.tipo} · ${enc.peso_kg} kg · ${enc.bus_nombre||''}</p></div>
+      <div class="tracking-meta"><span class="tracking-code" style="font-size:.95rem">${enc.codigo_rastreo}</span><p>${enc.tipo} · ${enc.peso_kg} kg · ${enc.unidad || enc.bus_nombre || ''}</p></div>
       ${badgeHtml(enc.estado)}
     </div>
     <div class="stepper">${steps}</div>
     <div class="tracking-details-grid">
-      <div class="detail-item"><label>Remitente</label><p>${enc.remitente_nombre}</p></div>
-      <div class="detail-item"><label>Destinatario</label><p>${enc.destinatario_nombre}</p></div>
+      <div class="detail-item">
+        <label>Remitente</label>
+        <p>${enc.remitente_nombre}</p>
+        ${enc.remitente_domicilio_fiscal ? `<p style="font-size:.7rem;color:var(--text2);margin-top:2px">🏠 ${enc.remitente_domicilio_fiscal}</p>` : ''}
+      </div>
+      <div class="detail-item">
+        <label>Destinatario</label>
+        <p>${enc.destinatario_nombre}</p>
+        ${enc.destinatario_domicilio_fiscal ? `<p style="font-size:.7rem;color:var(--text2);margin-top:2px">🏠 ${enc.destinatario_domicilio_fiscal}</p>` : ''}
+      </div>
+      <div class="detail-item"><label>Unidad</label><p>${enc.unidad || enc.bus_nombre || '---'}</p></div>
+      <div class="detail-item"><label>Conductor</label><p>${enc.conductor_nombre || '---'} ${enc.conductor_cedula ? `(${enc.conductor_cedula})` : ''}</p></div>
+      <div class="detail-item"><label>Hora de Envío</label><p>${enc.hora_envio ? String(enc.hora_envio).substring(0,5) : '---'}</p></div>
       <div class="detail-item"><label>Ruta</label><p>${enc.ciudad_origen||''} → ${enc.ciudad_destino||''}</p></div>
-      <div class="detail-item"><label>Bus</label><p>${enc.bus_nombre||''}</p></div>
       <div class="detail-item"><label>Registro</label><p>${enc.fecha_registro?.split('T')[0]||''}</p></div>
       <div class="detail-item"><label>Total</label><p style="color:var(--ok);font-weight:700">$${(+enc.total).toFixed(2)}</p></div>
     </div>
@@ -1055,7 +1436,7 @@ async function renderTabla() {
   const busCodigo= document.getElementById('filter-bus').value;
   const tbody    = document.getElementById('tabla-tbody');
   const emptyEl  = document.getElementById('tabla-empty');
-  tbody.innerHTML = '<tr><td colspan="10"><div class="empty-state"><span class="loader"></span></div></td></tr>';
+  tbody.innerHTML = '<tr><td colspan="12"><div class="empty-state"><span class="loader"></span></div></td></tr>';
   emptyEl.style.display = 'none';
 
   let rows = [];
@@ -1063,7 +1444,9 @@ async function renderTabla() {
   let q = sb.from('v_encomiendas_detalle').select('*');
   if (estado) q = q.eq('estado', estado);
   if (busCodigo) q = q.eq('bus_codigo', busCodigo);
-  if (search) q = q.or(`codigo_rastreo.ilike.%${search}%,remitente_nombre.ilike.%${search}%,remitente_cedula.ilike.%${search}%,destinatario_nombre.ilike.%${search}%,destinatario_cedula.ilike.%${search}%`);
+  if (search) {
+    q = q.or(`codigo_rastreo.ilike.%${search}%,remitente_nombre.ilike.%${search}%,remitente_cedula.ilike.%${search}%,destinatario_nombre.ilike.%${search}%,destinatario_cedula.ilike.%${search}%,conductor_nombre.ilike.%${search}%,conductor_cedula.ilike.%${search}%,unidad.ilike.%${search}%`);
+  }
   q = q.order('fecha_registro', { ascending: false });
   const { data } = await q;
   rows = data || [];
@@ -1071,10 +1454,23 @@ async function renderTabla() {
   if (!rows.length) { tbody.innerHTML = ''; emptyEl.style.display = 'block'; return; }
   tbody.innerHTML = rows.map(e => `<tr>
     <td><span class="tracking-code">${e.codigo_rastreo}</span></td>
-    <td><div style="font-weight:600">${e.remitente_nombre}</div><div style="font-size:.7rem;color:var(--text2)">${e.remitente_cedula||''}</div></td>
-    <td><div style="font-weight:600">${e.destinatario_nombre}</div><div style="font-size:.7rem;color:var(--text2)">${e.destinatario_cedula||''}</div></td>
+    <td>
+      <div style="font-weight:600">${e.remitente_nombre}</div>
+      <div style="font-size:.7rem;color:var(--text2)">${e.remitente_cedula||''}</div>
+      ${e.remitente_domicilio_fiscal ? `<div style="font-size:.68rem;color:var(--text3)" title="Domicilio Fiscal">🏠 ${e.remitente_domicilio_fiscal}</div>` : ''}
+    </td>
+    <td>
+      <div style="font-weight:600">${e.destinatario_nombre}</div>
+      <div style="font-size:.7rem;color:var(--text2)">${e.destinatario_cedula||''}</div>
+      ${e.destinatario_domicilio_fiscal ? `<div style="font-size:.68rem;color:var(--text3)" title="Domicilio Fiscal">🏠 ${e.destinatario_domicilio_fiscal}</div>` : ''}
+    </td>
     <td style="font-size:.78rem">${e.ciudad_origen||''} → ${e.ciudad_destino||''}</td>
-    <td style="font-size:.78rem">${e.bus_nombre||''}</td>
+    <td style="font-size:.78rem;font-weight:600">${e.unidad || e.bus_nombre || '---'}</td>
+    <td style="font-size:.78rem">
+      <div>${e.conductor_nombre || '---'}</div>
+      ${e.conductor_cedula ? `<div style="font-size:.68rem;color:var(--text2)">${e.conductor_cedula}</div>` : ''}
+    </td>
+    <td style="font-size:.78rem;color:var(--text2)">${e.hora_envio ? String(e.hora_envio).substring(0,5) : (e.fecha_registro ? e.fecha_registro.substring(11, 16) : '---')}</td>
     <td>${e.tipo}</td>
     <td>${e.peso_kg} kg</td>
     <td>${badgeHtml(e.estado)}</td>
@@ -1084,11 +1480,272 @@ async function renderTabla() {
 }
 
 // ════════════════════════════════════════════════════════
+//  CHOFERES — CRUD
+// ════════════════════════════════════════════════════════
+let choferesCache = [];
+
+async function loadChoferes() {
+  if (!sb) return;
+  const { data } = await sb.from('chofer').select('*').order('apellidos');
+  choferesCache = data || [];
+  renderChoferes();
+}
+
+function renderChoferes() {
+  const search = document.getElementById('chofer-search').value.toLowerCase();
+  const filtroActivo = document.getElementById('chofer-filter-activo').value;
+  const tbody = document.getElementById('choferes-tbody');
+  const emptyEl = document.getElementById('choferes-empty');
+
+  let rows = choferesCache;
+  if (search) rows = rows.filter(c =>
+    (c.cedula||'').toLowerCase().includes(search) ||
+    (c.nombres||'').toLowerCase().includes(search) ||
+    (c.apellidos||'').toLowerCase().includes(search) ||
+    (c.telefono||'').toLowerCase().includes(search) ||
+    (c.correo||'').toLowerCase().includes(search)
+  );
+  if (filtroActivo !== '') rows = rows.filter(c => String(c.activo) === filtroActivo);
+
+  if (!rows.length) {
+    tbody.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  tbody.innerHTML = rows.map(c => `<tr>
+    <td><span class="tracking-code">${c.cedula||''}</span></td>
+    <td style="font-weight:600">${c.nombres||''}</td>
+    <td>${c.apellidos||''}</td>
+    <td>${c.telefono||'---'}</td>
+    <td style="font-size:.78rem;color:var(--text2)">${c.correo||'---'}</td>
+    <td style="font-size:.75rem;color:var(--text2);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${c.domicilio||''}">${c.domicilio||'---'}</td>
+    <td><span class="chip ${c.activo ? 'active' : 'inactive'}">${c.activo ? 'Activo' : 'Inactivo'}</span></td>
+    <td><div class="action-btns">
+      <button class="btn-icon" title="Editar" onclick="editChofer('${c.id}')">&#x270F;&#xFE0F;</button>
+      <button class="btn-icon del" title="Eliminar" onclick="deleteChofer('${c.id}','${(c.nombres||'')} ${(c.apellidos||'')}')" >&#x1F5D1;&#xFE0F;</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+function openChoferModal(data = null) {
+  document.getElementById('chofer-id').value       = data?.id || '';
+  document.getElementById('chofer-cedula').value   = data?.cedula || '';
+  document.getElementById('chofer-nombres').value  = data?.nombres || '';
+  document.getElementById('chofer-apellidos').value= data?.apellidos || '';
+  document.getElementById('chofer-telefono').value = data?.telefono || '';
+  document.getElementById('chofer-correo').value   = data?.correo || '';
+  document.getElementById('chofer-licencia').value = data?.licencia || '';
+  document.getElementById('chofer-domicilio').value= data?.domicilio || '';
+  document.getElementById('chofer-activo').value   = data ? String(data.activo) : 'true';
+  const isEdit = !!data;
+  document.getElementById('modal-chofer-title').textContent = isEdit ? '✏️ Editar Chofer' : '👤 Nuevo Chofer';
+  document.getElementById('modal-chofer-subtitle').textContent = isEdit ? 'Modifique los datos del conductor' : 'Complete los datos del conductor';
+  document.getElementById('modal-chofer').classList.add('show');
+}
+
+function closeChoferModal() {
+  document.getElementById('modal-chofer').classList.remove('show');
+}
+
+function editChofer(id) {
+  const c = choferesCache.find(x => x.id === id);
+  if (c) openChoferModal(c);
+}
+
+async function guardarChofer() {
+  const id       = document.getElementById('chofer-id').value;
+  const cedula   = document.getElementById('chofer-cedula').value.trim();
+  const nombres  = document.getElementById('chofer-nombres').value.trim();
+  const apellidos= document.getElementById('chofer-apellidos').value.trim();
+  if (!cedula || !nombres || !apellidos) {
+    toast('Cédula, Nombres y Apellidos son obligatorios.', 'warn'); return;
+  }
+  const payload = {
+    cedula,
+    nombres,
+    apellidos,
+    telefono : document.getElementById('chofer-telefono').value.trim() || null,
+    correo   : document.getElementById('chofer-correo').value.trim() || null,
+    licencia : document.getElementById('chofer-licencia').value.trim() || null,
+    domicilio: document.getElementById('chofer-domicilio').value.trim() || null,
+    activo   : document.getElementById('chofer-activo').value === 'true'
+  };
+  if (currentPerfil?.empresa_id) payload.empresa_id = currentPerfil.empresa_id;
+
+  const btn = document.getElementById('btn-guardar-chofer');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+  let error;
+  if (id) {
+    ({ error } = await sb.from('chofer').update(payload).eq('id', id));
+  } else {
+    ({ error } = await sb.from('chofer').insert(payload));
+  }
+  btn.disabled = false; btn.innerHTML = '💾 Guardar';
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  toast(id ? 'Chofer actualizado correctamente.' : 'Chofer registrado correctamente.', 'success');
+  closeChoferModal();
+  await loadChoferes();
+}
+
+let _pendingDelete = null;
+
+function deleteChofer(id, nombre) {
+  _pendingDelete = { table: 'chofer', id, onDone: loadChoferes };
+  document.getElementById('modal-eliminar-msg').innerHTML = `¿Eliminar al chofer <strong>${nombre}</strong>? Esta acción no se puede deshacer.`;
+  document.getElementById('modal-confirmar-eliminar').classList.add('show');
+}
+
+// ════════════════════════════════════════════════════════
+//  UNIDADES — CRUD
+// ════════════════════════════════════════════════════════
+let unidadesCache = [];
+
+async function loadUnidades() {
+  if (!sb) return;
+  const { data } = await sb.from('unidad').select('*').order('numero_unidad');
+  unidadesCache = data || [];
+  renderUnidades();
+}
+
+function renderUnidades() {
+  const search = document.getElementById('unidad-search').value.toLowerCase();
+  const filtroTipo = document.getElementById('unidad-filter-tipo').value;
+  const tbody = document.getElementById('unidades-tbody');
+  const emptyEl = document.getElementById('unidades-empty');
+
+  let rows = unidadesCache;
+  if (search) rows = rows.filter(u =>
+    (u.numero_unidad||'').toLowerCase().includes(search) ||
+    (u.placa||'').toLowerCase().includes(search) ||
+    (u.tipo||'').toLowerCase().includes(search) ||
+    (u.prop_nombres||'').toLowerCase().includes(search) ||
+    (u.prop_apellidos||'').toLowerCase().includes(search) ||
+    (u.prop_cedula||'').toLowerCase().includes(search)
+  );
+  if (filtroTipo) rows = rows.filter(u => u.tipo === filtroTipo);
+
+  if (!rows.length) {
+    tbody.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  tbody.innerHTML = rows.map(u => `<tr>
+    <td style="font-weight:700;color:var(--accent)">${u.numero_unidad||''}</td>
+    <td><span class="tracking-code">${u.placa||'---'}</span></td>
+    <td>${u.tipo||'---'}</td>
+    <td style="text-align:center">${u.num_puestos||'---'}</td>
+    <td style="font-weight:600">${[u.prop_nombres, u.prop_apellidos].filter(Boolean).join(' ') || '---'}</td>
+    <td style="font-size:.78rem;color:var(--text2)">${u.prop_cedula||'---'}</td>
+    <td style="font-size:.78rem">${u.prop_telefono||'---'}</td>
+    <td><span class="chip ${u.activo ? 'active' : 'inactive'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
+    <td><div class="action-btns">
+      <button class="btn-icon" title="Editar" onclick="editUnidad('${u.id}')">&#x270F;&#xFE0F;</button>
+      <button class="btn-icon del" title="Eliminar" onclick="deleteUnidad('${u.id}','${u.numero_unidad||'?'}')" >&#x1F5D1;&#xFE0F;</button>
+    </div></td>
+  </tr>`).join('');
+}
+
+function openUnidadModal(data = null) {
+  document.getElementById('unidad-id').value           = data?.id || '';
+  document.getElementById('unidad-numero').value       = data?.numero_unidad || '';
+  document.getElementById('unidad-placa').value        = data?.placa || '';
+  document.getElementById('unidad-tipo').value         = data?.tipo || 'Bus';
+  document.getElementById('unidad-puestos').value      = data?.num_puestos || '';
+  document.getElementById('unidad-activo').value       = data ? String(data.activo) : 'true';
+  document.getElementById('unidad-prop-cedula').value  = data?.prop_cedula || '';
+  document.getElementById('unidad-prop-nombres').value = data?.prop_nombres || '';
+  document.getElementById('unidad-prop-apellidos').value = data?.prop_apellidos || '';
+  document.getElementById('unidad-prop-telefono').value = data?.prop_telefono || '';
+  const isEdit = !!data;
+  document.getElementById('modal-unidad-title').textContent = isEdit ? '✏️ Editar Unidad' : '🚌 Nueva Unidad';
+  document.getElementById('modal-unidad-subtitle').textContent = isEdit ? 'Modifique los datos del vehículo' : 'Complete los datos del vehículo';
+  document.getElementById('modal-unidad').classList.add('show');
+}
+
+function closeUnidadModal() {
+  document.getElementById('modal-unidad').classList.remove('show');
+}
+
+function editUnidad(id) {
+  const u = unidadesCache.find(x => x.id === id);
+  if (u) openUnidadModal(u);
+}
+
+async function guardarUnidad() {
+  const id      = document.getElementById('unidad-id').value;
+  const numero  = document.getElementById('unidad-numero').value.trim();
+  const placa   = document.getElementById('unidad-placa').value.trim();
+  if (!numero || !placa) {
+    toast('Número de Unidad y Placa son obligatorios.', 'warn'); return;
+  }
+  const payload = {
+    numero_unidad  : numero,
+    placa          : placa.toUpperCase(),
+    tipo           : document.getElementById('unidad-tipo').value,
+    num_puestos    : parseInt(document.getElementById('unidad-puestos').value) || null,
+    activo         : document.getElementById('unidad-activo').value === 'true',
+    prop_cedula    : document.getElementById('unidad-prop-cedula').value.trim() || null,
+    prop_nombres   : document.getElementById('unidad-prop-nombres').value.trim() || null,
+    prop_apellidos : document.getElementById('unidad-prop-apellidos').value.trim() || null,
+    prop_telefono  : document.getElementById('unidad-prop-telefono').value.trim() || null
+  };
+  if (currentPerfil?.empresa_id) payload.empresa_id = currentPerfil.empresa_id;
+
+  const btn = document.getElementById('btn-guardar-unidad');
+  btn.disabled = true; btn.innerHTML = '<span class="loader"></span>';
+  let error;
+  if (id) {
+    ({ error } = await sb.from('unidad').update(payload).eq('id', id));
+  } else {
+    ({ error } = await sb.from('unidad').insert(payload));
+  }
+  btn.disabled = false; btn.innerHTML = '💾 Guardar';
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  toast(id ? 'Unidad actualizada correctamente.' : 'Unidad registrada correctamente.', 'success');
+  closeUnidadModal();
+  await loadUnidades();
+  await loadUnidadesDatalist(); // Actualizar el datalist del formulario de encomienda
+}
+
+function deleteUnidad(id, numero) {
+  _pendingDelete = { table: 'unidad', id, onDone: loadUnidades };
+  document.getElementById('modal-eliminar-msg').innerHTML = `¿Eliminar la unidad <strong>N° ${numero}</strong>? Esta acción no se puede deshacer.`;
+  document.getElementById('modal-confirmar-eliminar').classList.add('show');
+}
+
+function closeEliminarModal() {
+  document.getElementById('modal-confirmar-eliminar').classList.remove('show');
+  _pendingDelete = null;
+}
+
+async function confirmarEliminar() {
+  if (!_pendingDelete || !sb) return;
+  const pending = _pendingDelete;
+  const btn = document.getElementById('btn-confirmar-eliminar');
+  btn.disabled = true;
+  const { error } = await sb.from(pending.table).delete().eq('id', pending.id);
+  btn.disabled = false;
+  if (error) { toast('Error al eliminar: ' + error.message, 'error'); return; }
+  toast('Registro eliminado correctamente.', 'success');
+  closeEliminarModal();
+  if (pending.onDone) await pending.onDone();
+  // Si se eliminó una unidad, refrescar el datalist del formulario de encomienda
+  if (pending.table === 'unidad') await loadUnidadesDatalist();
+}
+
+// ════════════════════════════════════════════════════════
 //  REALTIME (Supabase)
 // ════════════════════════════════════════════════════════
-function initRealtime() {
+async function initRealtime() {
   if (!sb) return;
-  sb.channel('enc-changes')
+  // Evitar doble suscripción: eliminar canal anterior si ya existía
+  if (realtimeChannel) {
+    await sb.removeChannel(realtimeChannel);
+    realtimeChannel = null;
+  }
+  realtimeChannel = sb.channel('enc-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'encomienda' }, () => {
       renderDashboard();
       const view = document.querySelector('.view.active')?.id;
@@ -1106,9 +1763,12 @@ function navigate(view, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
   if (el) el.classList.add('active');
+  if (view === 'registro')    { loadUnidadesDatalist(); setCurrentTimeInput(); }
   if (view === 'dashboard')   renderDashboard();
   if (view === 'seguimiento') renderPending();
   if (view === 'tabla')       renderTabla();
+  if (view === 'choferes')    loadChoferes();
+  if (view === 'unidades')    loadUnidades();
   if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('open');
 }
 
@@ -1134,9 +1794,12 @@ function toast(msg, type = 'success') {
 // ── Modal backdrop
 document.getElementById('modal-cedula').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
 document.getElementById('modal-config').addEventListener('click', e => { if (e.target === e.currentTarget) closeConfigModal(); });
+document.getElementById('modal-chofer').addEventListener('click', e => { if (e.target === e.currentTarget) closeChoferModal(); });
+document.getElementById('modal-unidad').addEventListener('click', e => { if (e.target === e.currentTarget) closeUnidadModal(); });
+document.getElementById('modal-confirmar-eliminar').addEventListener('click', e => { if (e.target === e.currentTarget) closeEliminarModal(); });
 
 // ── Auto-clear error borders on input
-['r-cedula','r-nombre','d-cedula','d-nombre','e-viaje','e-peso'].forEach(id => {
+['r-cedula','r-nombre','r-domicilio','d-cedula','d-nombre','d-domicilio','e-viaje','e-unidad','e-conductor-cedula','e-conductor-nombre','e-peso'].forEach(id => {
   const el = document.getElementById(id);
   if (el) {
     el.addEventListener('input', () => { el.style.borderColor = ''; });
@@ -1145,6 +1808,7 @@ document.getElementById('modal-config').addEventListener('click', e => { if (e.t
 });
 
 // ── Boot
+setCurrentTimeInput();
 init();
 </script>
 </body>
