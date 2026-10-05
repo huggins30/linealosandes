@@ -222,15 +222,207 @@
   .realtime-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;animation:pulse 2s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 
-  /* ── RESPONSIVE ── */
-  @media(max-width:768px){
-    #sidebar{transform:translateX(-100%)}
-    #sidebar.open{transform:translateX(0)}
-    #hamburger{display:flex;align-items:center;justify-content:center}
-    #main{margin-left:0;padding:16px;padding-top:60px}
+  /* ── RESPONSIVE — COMPREHENSIVE ── */
+
+  /* Sidebar overlay backdrop */
+  #sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99;backdrop-filter:blur(2px);opacity:0;transition:opacity .3s}
+  #sidebar-backdrop.show{display:block;opacity:1}
+
+  /* ── TABLET (≤1024px) ── */
+  @media(max-width:1024px){
+    #sidebar{width:210px}
+    #main{margin-left:210px;padding:22px 18px}
     .kpi-grid{grid-template-columns:repeat(2,1fr)}
-    .stepper{flex-direction:column;align-items:flex-start;gap:8px}
+    .form-grid{grid-template-columns:repeat(2,1fr)}
+    .form-grid-3{grid-template-columns:repeat(2,1fr)}
+    .tracking-details-grid{grid-template-columns:repeat(2,1fr)}
+    .buses-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+  }
+
+  /* ── MOBILE (≤768px) ── */
+  @media(max-width:768px){
+    html{font-size:14px}
+    #sidebar{transform:translateX(-100%);width:260px;z-index:200}
+    #sidebar.open{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,.5)}
+    #hamburger{display:flex;align-items:center;justify-content:center}
+    #main{margin-left:0;padding:16px;padding-top:60px;padding-bottom:80px}
+    .page-header h2{font-size:1.25rem}
+    .page-header p{font-size:.78rem}
+
+    /* KPIs 2x2 */
+    .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+    .kpi-card{padding:14px}
+    .kpi-value{font-size:1.5rem}
+    .kpi-label{font-size:.62rem}
+    .kpi-icon{font-size:1.3rem}
+
+    /* Bus grid */
+    .buses-grid{grid-template-columns:1fr 1fr;gap:10px}
+
+    /* Forms single column */
+    .form-grid{grid-template-columns:1fr}
+    .form-grid-3{grid-template-columns:1fr}
+    .tracking-details-grid{grid-template-columns:1fr 1fr}
+
+    /* Stepper vertical */
+    .stepper{flex-direction:column;align-items:flex-start;gap:0;padding-left:12px}
+    .step{flex-direction:row;align-items:center;gap:10px;padding:6px 0}
     .step::before{display:none}
+    .step::after{content:'';position:absolute;left:12px;top:38px;width:2px;height:calc(100% - 12px);background:var(--border);z-index:0}
+    .step:last-child::after{display:none}
+    .step.done::after{background:var(--ok)}
+    .step-dot{flex-shrink:0}
+    .step-label{text-align:left}
+
+    /* Module toolbar */
+    .module-toolbar{flex-direction:column;align-items:stretch}
+    .module-toolbar input{min-width:auto;width:100%}
+    .module-toolbar select{width:100%}
+    .module-toolbar .btn{width:100%;justify-content:center}
+
+    /* Filter bar */
+    .filter-bar{flex-direction:column}
+    .filter-bar input{min-width:auto;width:100%}
+    .filter-bar select{min-width:auto;width:100%}
+
+    /* Search bar */
+    .search-bar{flex-direction:column}
+    .search-bar input{width:100%}
+    .search-bar .btn{width:100%;justify-content:center}
+
+    /* Tracking card */
+    .tracking-header{flex-direction:column;gap:8px}
+    .tracking-actions{flex-direction:column}
+    .tracking-actions .btn{width:100%;justify-content:center}
+
+    /* Tables → Card layout on mobile */
+    .module-table-wrap table thead,
+    #view-dashboard .card table thead,
+    #view-seguimiento table thead,
+    #view-tabla table thead{display:none}
+
+    .module-table-wrap table tbody,
+    #view-dashboard .card table tbody,
+    #view-seguimiento table tbody,
+    #view-tabla table tbody{display:flex;flex-direction:column;gap:10px}
+
+    .module-table-wrap table tbody tr,
+    #view-dashboard .card table tbody tr,
+    #view-seguimiento table tbody tr,
+    #view-tabla table tbody tr{display:flex;flex-wrap:wrap;gap:6px 12px;padding:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius-sm);border-top:none;position:relative}
+
+    .module-table-wrap table tbody td,
+    #view-dashboard .card table tbody td,
+    #view-seguimiento table tbody td,
+    #view-tabla table tbody td{padding:2px 0;border:none;font-size:.8rem}
+
+    /* Dashboard recent table cards */
+    #view-dashboard .card table tbody td:first-child{width:100%;font-weight:700}
+    #view-dashboard .card table tbody td{width:auto}
+
+    /* Pending table card adaptations */
+    #view-seguimiento table tbody td:first-child{width:100%}
+    #view-seguimiento table tbody td:last-child{width:100%;margin-top:4px}
+    #view-seguimiento table tbody td:last-child .btn{width:100%;justify-content:center}
+
+    /* Tabla general card adaptations */
+    #view-tabla table tbody td{min-width:0}
+    #view-tabla table tbody td:first-child{width:100%;font-size:.85rem}
+
+    /* Choferes table card */
+    #view-choferes .module-table-wrap table tbody td:first-child{width:100%}
+    #view-choferes .module-table-wrap table tbody td:last-child{width:100%;margin-top:4px}
+    #view-choferes .module-table-wrap table tbody td:last-child .action-btns{justify-content:flex-end;width:100%}
+
+    /* Unidades table card */
+    #view-unidades .module-table-wrap table tbody td:first-child{width:auto}
+    #view-unidades .module-table-wrap table tbody td:last-child{width:100%;margin-top:4px}
+    #view-unidades .module-table-wrap table tbody td:last-child .action-btns{justify-content:flex-end;width:100%}
+
+    /* Modals fullscreen on mobile */
+    .modal-overlay{align-items:flex-end;padding:0}
+    .modal{max-width:100%!important;border-radius:var(--radius) var(--radius) 0 0;max-height:90vh;overflow-y:auto;padding:22px 18px;animation:slideUp .3s ease}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .modal-overlay.show .modal{transform:scale(1)}
+    .modal-actions{flex-direction:column-reverse}
+    .modal-actions .btn{width:100%;justify-content:center}
+
+    /* Buttons touch-friendly */
+    .btn{padding:12px 18px;font-size:.85rem}
+    .btn-sm{padding:9px 14px;font-size:.78rem}
+    .btn-icon{padding:8px 12px;font-size:.85rem}
+    .btn-group{flex-direction:column}
+    .btn-group .btn{width:100%;justify-content:center}
+
+    /* Input touch-friendly */
+    input,select{padding:12px;font-size:.88rem}
+
+    /* Cost box */
+    .cost-box{padding:14px}
+
+    /* Login card */
+    .login-card{margin:16px;padding:28px 20px}
+
+    /* Toast */
+    #toast-container{left:12px;right:12px;bottom:76px}
+    .toast{min-width:auto;width:100%}
+
+    /* Card header stacking */
+    .card-header{flex-direction:column;gap:8px;align-items:flex-start}
+    .card-header .btn{width:100%;justify-content:center}
+  }
+
+  /* ── SMALL MOBILE (≤480px) ── */
+  @media(max-width:480px){
+    html{font-size:13.5px}
+    #main{padding:12px;padding-top:56px;padding-bottom:76px}
+    .page-header{margin-bottom:18px}
+    .page-header h2{font-size:1.15rem}
+
+    /* KPIs stack */
+    .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
+    .kpi-card{padding:12px}
+    .kpi-value{font-size:1.3rem}
+    .kpi-icon{display:none}
+
+    /* Buses single col */
+    .buses-grid{grid-template-columns:1fr}
+
+    /* Tracking details single col */
+    .tracking-details-grid{grid-template-columns:1fr}
+
+    /* Modal padding */
+    .modal{padding:18px 14px}
+
+    /* Hide less important table columns via data attributes handled by JS */
+  }
+
+  /* ── LANDSCAPE MOBILE ── */
+  @media(max-width:768px) and (orientation:landscape){
+    .modal{max-height:85vh}
+    .kpi-grid{grid-template-columns:repeat(4,1fr)}
+    .buses-grid{grid-template-columns:repeat(3,1fr)}
+  }
+
+  /* ── LARGE DESKTOP (≥1400px) ── */
+  @media(min-width:1400px){
+    #main{max-width:1300px;margin-left:230px;margin-right:auto;padding:32px 40px}
+    .kpi-grid{grid-template-columns:repeat(4,1fr)}
+  }
+
+  /* ── TOUCH ENHANCEMENTS ── */
+  @media(hover:none) and (pointer:coarse){
+    .nav-item{padding:14px}
+    .btn-icon{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+    .btn-logout{min-width:40px;min-height:40px;font-size:1.1rem}
+    input,select{min-height:44px}
+  }
+
+  /* ── SCROLL-TO-TOP ── */
+  #scroll-top{display:none;position:fixed;bottom:22px;right:22px;z-index:150;width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;cursor:pointer;font-size:1.1rem;box-shadow:0 4px 16px rgba(79,126,248,.35);transition:opacity .3s,transform .3s;opacity:0;transform:translateY(10px)}
+  #scroll-top.show{display:flex;align-items:center;justify-content:center;opacity:1;transform:translateY(0)}
+  @media(max-width:768px){
+    #scroll-top{bottom:76px;right:14px;width:38px;height:38px;font-size:1rem}
   }
   ::-webkit-scrollbar{width:5px}
   ::-webkit-scrollbar-track{background:var(--bg)}
@@ -253,7 +445,11 @@
   </div>
 </div>
 
-<button id="hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')">&#9776;</button>
+<button id="hamburger" onclick="toggleSidebar()">&#9776;</button>
+<div id="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+
+<!-- ══ SCROLL-TO-TOP ══ -->
+<button id="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Volver arriba">&#x2191;</button>
 
 <!-- ══ SIDEBAR ══ -->
 <div id="sidebar">
@@ -1769,7 +1965,7 @@ function navigate(view, el) {
   if (view === 'tabla')       renderTabla();
   if (view === 'choferes')    loadChoferes();
   if (view === 'unidades')    loadUnidades();
-  if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('open');
+  if (window.innerWidth < 768) toggleSidebar(false);
 }
 
 // ════════════════════════════════════════════════════════
@@ -1806,6 +2002,71 @@ document.getElementById('modal-confirmar-eliminar').addEventListener('click', e 
     if (el.tagName === 'SELECT') el.addEventListener('change', () => { el.style.borderColor = ''; });
   }
 });
+
+// ── Sidebar toggle with backdrop
+function toggleSidebar(forceState) {
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const shouldOpen = forceState !== undefined ? forceState : !sidebar.classList.contains('open');
+  if (shouldOpen) {
+    sidebar.classList.add('open');
+    backdrop.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  } else {
+    sidebar.classList.remove('open');
+    backdrop.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+}
+
+// ── Scroll-to-top visibility
+window.addEventListener('scroll', () => {
+  const btn = document.getElementById('scroll-top');
+  if (window.scrollY > 300) {
+    btn.classList.add('show');
+  } else {
+    btn.classList.remove('show');
+  }
+}, { passive: true });
+
+// ── Swipe to close sidebar
+(function() {
+  let touchStartX = 0;
+  let touchStartY = 0;
+  const sidebar = document.getElementById('sidebar');
+  
+  sidebar.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+  
+  sidebar.addEventListener('touchend', e => {
+    const deltaX = e.changedTouches[0].clientX - touchStartX;
+    const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+    // Swipe left to close
+    if (deltaX < -60 && deltaY < 80) {
+      toggleSidebar(false);
+    }
+  }, { passive: true });
+
+  // Swipe right from edge to open
+  document.addEventListener('touchstart', e => {
+    if (e.touches[0].clientX < 20 && window.innerWidth <= 768) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  }, { passive: true });
+
+  document.addEventListener('touchend', e => {
+    if (touchStartX < 20 && window.innerWidth <= 768) {
+      const deltaX = e.changedTouches[0].clientX - touchStartX;
+      const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+      if (deltaX > 60 && deltaY < 80) {
+        toggleSidebar(true);
+      }
+    }
+  }, { passive: true });
+})();
 
 // ── Boot
 setCurrentTimeInput();
