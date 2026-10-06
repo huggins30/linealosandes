@@ -38,6 +38,16 @@ END $$;
 CREATE INDEX IF NOT EXISTS idx_persona_cedula ON persona(cedula);
 CREATE INDEX IF NOT EXISTS idx_conductor_cedula ON conductor(cedula);
 
+-- Habilitar permisos de lectura y escritura en la tabla persona para Supabase
+ALTER TABLE persona ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir lectura persona" ON persona;
+CREATE POLICY "Permitir lectura persona" ON persona FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Permitir insercion persona" ON persona;
+CREATE POLICY "Permitir insercion persona" ON persona FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Permitir actualizacion persona" ON persona;
+CREATE POLICY "Permitir actualizacion persona" ON persona FOR UPDATE USING (true);
+GRANT ALL ON persona TO anon, authenticated, service_role;
+
 -- Habilitar permisos de lectura y escritura en la tabla conductor para Supabase
 ALTER TABLE conductor ENABLE ROW LEVEL SECURITY;
 
@@ -64,7 +74,15 @@ ALTER TABLE encomienda
 ADD COLUMN IF NOT EXISTS unidad VARCHAR(100);
 
 ALTER TABLE encomienda 
-ADD COLUMN IF NOT EXISTS conductor_id UUID REFERENCES conductor(id) ON DELETE SET NULL;
+ADD COLUMN IF NOT EXISTS conductor_id UUID;
+
+-- Eliminar la restricción de llave foránea estricta a 'conductor' para que acepte tanto choferes como conductores
+DO $$
+BEGIN
+    ALTER TABLE encomienda DROP CONSTRAINT IF EXISTS encomienda_conductor_id_fkey;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
 
 ALTER TABLE encomienda 
 ADD COLUMN IF NOT EXISTS conductor_cedula VARCHAR(50);

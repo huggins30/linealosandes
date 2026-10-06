@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rastreo de Encomiendas | Línea Los Andes</title>
+  <meta name="description" content="Consulta en tiempo real el estado y ubicación de tu paquete o encomienda con Línea Los Andes.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <!-- Configuración de Supabase (compartida con la aplicación) -->
+  <script src="supabase.config.js"></script>
+  <style>
+    :root {
+      --bg: #070913;
+      --bg-surface: #0e1322;
+      --bg-card: #141b30;
+      --bg-card-hover: #19223c;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(79, 126, 248, 0.6);
+      
+      --accent: #4f7ef8;
+      --accent-glow: rgba(79, 126, 248, 0.35);
+      --accent-gradient: linear-gradient(135deg, #4f7ef8 0%, #7c5ef8 100%);
+      --cyan: #00d4aa;
+      --cyan-glow: rgba(0, 212, 170, 0.3);
+      --gold: #f5a623;
+      --danger: #ef4444;
+      --success: #10b981;
+      --success-glow: rgba(16, 185, 129, 0.3);
+      
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 20px;
+      --radius-full: 9999px;
+      
+      --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.45);
+      --shadow-glow: 0 0 30px var(--accent-glow);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient background lights */
+    .ambient-bg {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100vh;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .ambient-orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.15;
+    }
+    .orb-1 {
+      top: -100px;
+      left: 20%;
+      width: 500px;
+      height: 500px;
+      background: #4f7ef8;
+    }
+    .orb-2 {
+      top: 250px;
+      right: 15%;
+      width: 450px;
+      height: 450px;
+      background: #7c5ef8;
+      opacity: 0.12;
+    }
+    .orb-3 {
+      bottom: -150px;
+      left: 30%;
+      width: 600px;
+      height: 600px;
+      background: #00d4aa;
+      opacity: 0.08;
+    }
+
+    /* Header Nav */
+    header {
+      position: relative;
+      z-index: 10;
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(16px);
+      background: rgba(14, 19, 34, 0.75);
+    }
+    .nav-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-sm);
+      background: var(--accent-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      box-shadow: 0 4px 15px var(--accent-glow);
+    }
+    .brand-text h1 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      background: var(--accent-gradient);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-text span {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      display: block;
+      margin-top: -2px;
+    }
+    .security-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--success);
+    }
+    .security-badge .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    /* Main Container */
+    main {
+      position: relative;
+      z-index: 5;
+      flex: 1;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 32px;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .hero-tag {
+      display: inline-block;
+      padding: 5px 14px;
+      border-radius: var(--radius-full);
+      background: rgba(79, 126, 248, 0.12);
+      border: 1px solid rgba(79, 126, 248, 0.3);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .hero h2 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      letter-spacing: -0.8px;
+      color: #fff;
+      margin-bottom: 10px;
+      line-height: 1.2;
+    }
+    .hero p {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
+    /* Search Box */
+    .search-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+    .search-card:focus-within {
+      border-color: var(--border-focus);
+      box-shadow: 0 8px 30px rgba(79, 126, 248, 0.2);
+    }
+    .search-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent-gradient);
+    }
+    .search-form {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .input-wrapper {
+      flex: 1;
+      min-width: 220px;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .input-icon {
+      position: absolute;
+      left: 16px;
+      color: var(--text-dim);
+      font-size: 1.15rem;
+      pointer-events: none;
+      transition: color 0.2s;
+    }
+    .input-wrapper input:focus ~ .input-icon {
+      color: var(--accent);
+    }
+    .search-input {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 16px 16px 48px;
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+    .search-input::placeholder {
+      color: var(--text-dim);
+      text-transform: none;
+      font-weight: 400;
+      font-size: 0.95rem;
+      letter-spacing: normal;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      background: #172038;
+      box-shadow: 0 0 0 3px rgba(79, 126, 248, 0.2);
+    }
+    .clear-btn {
+      position: absolute;
+      right: 14px;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: none;
+      padding: 4px;
+      line-height: 1;
+      border-radius: 50%;
+    }
+    .clear-btn:hover {
+      color: #fff;
+    }
+    .btn-search {
+      background: var(--accent-gradient);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-md);
+      padding: 16px 32px;
+      font-size: 0.98rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 18px rgba(79, 126, 248, 0.35);
+      flex-shrink: 0;
+    }
+    .btn-search:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px rgba(79, 126, 248, 0.5);
+    }
+    .btn-search:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    .btn-search:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Recent Searches */
+    .recent-searches {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .recent-label {
+      font-size: 0.73rem;
+      color: var(--text-dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .recent-chips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-family: monospace;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .chip:hover {
+      border-color: var(--accent);
+      color: #fff;
+      background: rgba(79, 126, 248, 0.15);
+    }
+
+    /* Security Notice Banner */
+    .privacy-notice {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-top: 8px;
+      padding: 0 4px;
+    }
+    .privacy-notice svg {
+      flex-shrink: 0;
+      color: var(--cyan);
+    }
+
+    /* Result Container */
+    #result-area {
+      position: relative;
+      min-height: 50px;
+    }
+
+    /* Loader */
+    .loader-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 50px 20px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 3px solid rgba(79, 126, 248, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .loader-text {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Error / Not Found Box */
+    .alert-box {
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: var(--radius-lg);
+      padding: 32px 24px;
+      text-align: center;
+      animation: fadeIn 0.3s ease;
+    }
+    .alert-icon {
+      font-size: 2.4rem;
+      margin-bottom: 12px;
+      line-height: 1;
+    }
+    .alert-box h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+    .alert-box p {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      max-width: 480px;
+      margin: 0 auto 16px;
+    }
+    .alert-tip {
+      display: inline-block;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      background: rgba(0, 0, 0, 0.25);
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+    }
+
+    /* Tracking Result Card */
+    .tracking-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      animation: fadeInUp 0.4s ease;
+      position: relative;
+    }
+    .tracking-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--accent-gradient);
+    }
+
+    /* Card Top Bar */
+    .card-top {
+      padding: 24px 28px;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .tracking-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .tracking-number-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .tracking-code-pill {
+      font-family: monospace;
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #fff;
+      background: var(--bg-card);
+      padding: 4px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(79, 126, 248, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-copy-code {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: var(--radius-sm);
+      padding: 5px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+    .btn-copy-code:hover {
+      color: #fff;
+      border-color: var(--accent);
+      background: rgba(79, 126, 248, 0.15);
+    }
+    .package-summary-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* Status Badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+    .status-badge.registrado {
+      background: rgba(148, 163, 184, 0.15);
+      border: 1px solid rgba(148, 163, 184, 0.3);
+      color: #cbd5e1;
+    }
+    .status-badge.transito {
+      background: rgba(79, 126, 248, 0.18);
+      border: 1px solid rgba(79, 126, 248, 0.4);
+      color: #93c5fd;
+      animation: glowTransit 3s infinite alternate;
+    }
+    .status-badge.terminal {
+      background: rgba(245, 166, 35, 0.18);
+      border: 1px solid rgba(245, 166, 35, 0.4);
+      color: #fcd34d;
+    }
+    .status-badge.entregado {
+      background: rgba(16, 185, 129, 0.18);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+    }
+
+    /* Route Visualizer */
+    .route-visualizer {
+      padding: 24px 28px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+    .route-header {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .route-display {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      gap: 12px;
+    }
+    .route-city {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      z-index: 2;
+    }
+    .route-city.destination {
+      text-align: right;
+    }
+    .city-role {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .city-name {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #fff;
+    }
+    .route-track {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-full);
+      position: relative;
+      margin: 0 16px;
+      overflow: hidden;
+    }
+    .route-progress-fill {
+      height: 100%;
+      background: var(--accent-gradient);
+      border-radius: var(--radius-full);
+      transition: width 0.8s ease;
+      position: relative;
+    }
+    .route-bus-icon {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 32px;
+      height: 32px;
+      background: var(--bg-surface);
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      box-shadow: 0 0 12px var(--accent);
+      transition: left 0.8s ease;
+      z-index: 3;
+    }
+
+    /* Stepper Timeline */
+    .stepper-section {
+      padding: 32px 28px;
+      border-bottom: 1px solid var(--border);
+    }
+    .stepper {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      position: relative;
+      gap: 8px;
+    }
+    .stepper::before {
+      content: '';
+      position: absolute;
+      top: 24px;
+      left: 12%;
+      right: 12%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      z-index: 1;
+    }
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      z-index: 2;
+    }
+    .step-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--bg-surface);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      margin-bottom: 12px;
+      transition: all 0.3s ease;
+      color: var(--text-dim);
+    }
+    .step-name {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      margin-bottom: 2px;
+      transition: color 0.3s;
+    }
+    .step-desc {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      max-width: 140px;
+      line-height: 1.3;
+    }
+
+    /* Step states */
+    .step-item.completed .step-circle {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: var(--success);
+      color: var(--success);
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+    }
+    .step-item.completed .step-name {
+      color: #fff;
+    }
+    .step-item.active .step-circle {
+      background: rgba(79, 126, 248, 0.2);
+      border-color: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 20px var(--accent-glow);
+      transform: scale(1.08);
+      animation: pulseActive 2s infinite;
+    }
+    .step-item.active .step-name {
+      color: var(--accent);
+    }
+
+    /* Details Grid */
+    .details-section {
+      padding: 28px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      background: rgba(0, 0, 0, 0.1);
+    }
+    .info-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .info-card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+    .info-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .info-val {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      word-break: break-word;
+    }
+    .info-sub {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+    }
+
+    /* Action bar on card */
+    .card-actions {
+      padding: 18px 28px;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .realtime-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .realtime-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      animation: pulse 2s infinite;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .btn-action {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-action:hover {
+      background: rgba(79, 126, 248, 0.15);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn-whatsapp {
+      background: rgba(37, 211, 102, 0.12);
+      border-color: rgba(37, 211, 102, 0.3);
+      color: #25d366;
+    }
+    .btn-whatsapp:hover {
+      background: rgba(37, 211, 102, 0.25);
+      border-color: #25d366;
+      color: #fff;
+    }
+
+    /* Live Update Toast inside page */
+    .live-notification {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 1000;
+      background: var(--bg-card);
+      border: 1px solid var(--cyan);
+      box-shadow: 0 8px 24px rgba(0, 212, 170, 0.25);
+      color: #fff;
+      padding: 14px 20px;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      animation: slideIn 0.3s ease;
+    }
+    .live-notification.show {
+      display: flex;
+    }
+
+    /* Help & Support Section */
+    .support-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .support-info h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+    .support-info p {
+      font-size: 0.83rem;
+      color: var(--text-muted);
+    }
+    .btn-support {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .btn-support:hover {
+      border-color: var(--accent);
+      background: rgba(79, 126, 248, 0.15);
+    }
+
+    /* Footer */
+    footer {
+      position: relative;
+      z-index: 10;
+      border-top: 1px solid var(--border);
+      padding: 24px;
+      text-align: center;
+      background: rgba(14, 19, 34, 0.6);
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+    footer p {
+      margin-bottom: 6px;
+    }
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    /* Keyframes */
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.9); }
+    }
+    @keyframes pulseActive {
+      0%, 100% { box-shadow: 0 0 15px var(--accent-glow); }
+      50% { box-shadow: 0 0 30px rgba(79, 126, 248, 0.6); }
+    }
+    @keyframes glowTransit {
+      0% { box-shadow: 0 0 5px rgba(79, 126, 248, 0.3); }
+      100% { box-shadow: 0 0 20px rgba(79, 126, 248, 0.6); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { transform: translateX(80px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .hero h2 {
+        font-size: 1.65rem;
+      }
+      .search-form {
+        flex-direction: column;
+      }
+      .btn-search {
+        width: 100%;
+        padding: 14px;
+      }
+      .card-top {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px;
+      }
+      .route-visualizer {
+        padding: 20px;
+      }
+      .city-name {
+        font-size: 1.05rem;
+      }
+      
+      /* Stepper becomes vertical on mobile */
+      .stepper {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        padding-left: 10px;
+      }
+      .stepper::before {
+        display: none;
+      }
+      .step-item {
+        flex-direction: row;
+        text-align: left;
+        gap: 16px;
+        align-items: flex-start;
+        position: relative;
+      }
+      .step-item::after {
+        content: '';
+        position: absolute;
+        left: 23px;
+        top: 48px;
+        bottom: -22px;
+        width: 2px;
+        background: rgba(255, 255, 255, 0.1);
+        z-index: 1;
+      }
+      .step-item:last-child::after {
+        display: none;
+      }
+      .step-item.completed::after {
+        background: var(--success);
+      }
+      .step-circle {
+        margin-bottom: 0;
+        flex-shrink: 0;
+      }
+      .step-desc {
+        max-width: none;
+      }
+      
+      .details-section {
+        grid-template-columns: 1fr;
+        padding: 20px;
+      }
+      .card-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+        padding: 18px 20px;
+      }
+      .action-buttons {
+        flex-direction: column;
+      }
+      .btn-action {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Light Effects -->
+  <div class="ambient-bg">
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="ambient-orb orb-3"></div>
+  </div>
+
+  <!-- Header Navigation -->
+  <header>
+    <div class="nav-container">
+      <a href="rastreo.html" class="brand">
+        <div class="brand-icon">📦</div>
+        <div class="brand-text">
+          <h1>Línea Los Andes</h1>
+          <span>Portal Oficial de Rastreo</span>
+        </div>
+      </a>
+      <div class="security-badge">
+        <span class="dot"></span>
+        <span>Conexión Segura</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Live Update Banner Notification -->
+  <div id="live-toast" class="live-notification">
+    <span style="font-size: 1.4rem;">⚡</span>
+    <div>
+      <strong id="live-toast-title">Estado actualizado</strong>
+      <p id="live-toast-msg" style="font-size: 0.78rem; color: #94a3b8;">Tu paquete ha cambiado de estado en tiempo real.</p>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main>
+    <!-- Hero Section -->
+    <div class="hero">
+      <span class="hero-tag">Seguimiento en Vivo</span>
+      <h2>Rastrea tu Encomienda</h2>
+      <p>Ingresa el código de guía asignado en taquilla para conocer la ubicación y estado exacto de tu envío.</p>
+    </div>
+
+    <!-- Search Section -->
+    <section class="search-card" aria-label="Búsqueda de paquete">
+      <form id="tracking-form" class="search-form" onsubmit="event.preventDefault(); ejecutarRastreo();">
+        <div class="input-wrapper">
+          <span class="input-icon">🔍</span>
+          <input 
+            type="text" 
+            id="track-code-input" 
+            class="search-input" 
+            placeholder="Ejemplo: ENC-12345" 
+            autocomplete="off" 
+            spellcheck="false" 
+            maxlength="30"
+            required
+            aria-label="Código de rastreo de la encomienda"
+          >
+          <button type="button" id="btn-clear-input" class="clear-btn" title="Limpiar código" onclick="limpiarInput()">✕</button>
+        </div>
+        <button type="submit" id="btn-submit-track" class="btn-search">
+          <span>Rastrear Envío</span>
+          <span>→</span>
+        </button>
+      </form>
+
+      <!-- Recent searches pill list -->
+      <div id="recent-container" class="recent-searches" style="display: none;">
+        <span class="recent-label">Búsquedas recientes:</span>
+        <div id="recent-chips" class="recent-chips"></div>
+      </div>
+
+      <div class="privacy-notice">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>Consulta pública segura. Los datos confidenciales y personales de clientes están protegidos.</span>
+      </div>
+    </section>
+
+    <!-- Search Result / Details Area -->
+    <div id="result-area">
+      <!-- Default Initial State -->
+      <div id="initial-placeholder" class="loader-box" style="padding: 40px 20px;">
+        <div style="font-size: 2.5rem; opacity: 0.6; margin-bottom: -6px;">🚛</div>
+        <div class="loader-text" style="color: var(--text-dim);">
+          Ingresa tu código de guía para ver la ruta y el estado de tu encomienda
+        </div>
+      </div>
+    </div>
+
+    <!-- Help & Support Banner -->
+    <section class="support-card">
+      <div class="support-info">
+        <h4>¿Necesitas asistencia con tu encomienda?</h4>
+        <p>Nuestro equipo de atención al cliente está disponible para ayudarte con cualquier duda sobre tu envío.</p>
+      </div>
+      <a href="https://wa.me/?text=Hola%2C%20quisiera%20consultar%20sobre%20mi%20encomienda%20con%20L%C3%ADnea%20Los%20Andes" target="_blank" rel="noopener noreferrer" class="btn-support">
+        <span>💬 Contactar por WhatsApp</span>
+      </a>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>© 2026 Línea Los Andes — Transporte y Encomiendas. Todos los derechos reservados.</p>
+    <p style="font-size: 0.72rem;">Portal de consulta externa para clientes · Protegido contra accesos no autorizados.</p>
+  </footer>
+
+  <!-- Script Logic -->
+  <script>
+    // ════════════════════════════════════════════════════════
+    //  INICIALIZACIÓN SEGURA DE SUPABASE CLIENT
+    // ════════════════════════════════════════════════════════
+    let sbClient = null;
+    let currentTrackingCode = null;
+    let realtimeSubscription = null;
+    let lastQueryTimestamp = 0;
+
+    function initSupabase() {
+      // Intentar obtener de configuración oficial compartida
+      const config = window.SUPABASE_CONFIG || {};
+      const url = config.url || localStorage.getItem('sb_custom_url');
+      const anonKey = config.anonKey || localStorage.getItem('sb_custom_key');
+
+      if (!url || !anonKey) {
+        console.error('No se encontró configuración de Supabase.');
+        return null;
+      }
+
+      try {
+        const { createClient } = window.supabase;
+        return createClient(url, anonKey);
+      } catch (err) {
+        console.error('Error inicializando Supabase:', err);
+        return null;
+      }
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  GESTIÓN DE ENTRADA Y BÚSQUEDAS RECIENTES
+    // ════════════════════════════════════════════════════════
+    const trackInput = document.getElementById('track-code-input');
+    const btnClear = document.getElementById('btn-clear-input');
+
+    trackInput.addEventListener('input', () => {
+      const val = trackInput.value.trim();
+      btnClear.style.display = val ? 'block' : 'none';
+    });
+
+    function limpiarInput() {
+      trackInput.value = '';
+      btnClear.style.display = 'none';
+      trackInput.focus();
+    }
+
+    function cargarRecientes() {
+      try {
+        const guardados = JSON.parse(localStorage.getItem('recientes_rastreo_lla') || '[]');
+        const container = document.getElementById('recent-container');
+        const chips = document.getElementById('recent-chips');
+        
+        if (guardados && guardados.length > 0) {
+          chips.innerHTML = guardados.slice(0, 4).map(code => 
+            `<button type="button" class="chip" onclick="seleccionarReciente('${sanitizeString(code)}')">${sanitizeString(code)}</button>`
+          ).join('');
+          container.style.display = 'flex';
+        } else {
+          container.style.display = 'none';
+        }
+      } catch (e) {
+        console.warn('Error leyendo recientes:', e);
+      }
+    }
+
+    function guardarReciente(code) {
+      try {
+        let guardados = JSON.parse(localStorage.getItem('recientes_rastreo_lla') || '[]');
+        guardados = [code, ...guardados.filter(c => c !== code)].slice(0, 5);
+        localStorage.setItem('recientes_rastreo_lla', JSON.stringify(guardados));
+        cargarRecientes();
+      } catch (e) {}
+    }
+
+    function seleccionarReciente(code) {
+      trackInput.value = code;
+      btnClear.style.display = 'block';
+      ejecutarRastreo();
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  CONSULTA SEGURA DE SEGUIMIENTO (READ-ONLY)
+    // ════════════════════════════════════════════════════════
+    async function ejecutarRastreo() {
+      const rawCode = trackInput.value.trim().toUpperCase();
+      const resultArea = document.getElementById('result-area');
+      const btnSubmit = document.getElementById('btn-submit-track');
+
+      // 1. Validación de formato seguro
+      if (!rawCode) {
+        trackInput.focus();
+        return;
+      }
+
+      // Prevenir inyecciones o caracteres extraños
+      const cleanCode = rawCode.replace(/[^A-Z0-9\-]/g, '');
+      if (cleanCode.length < 3) {
+        mostrarError('Código inválido', 'El código de rastreo debe tener al menos 3 caracteres alfanuméricos.');
+        return;
+      }
+
+      // 2. Rate limiting simple del cliente (mínimo 800ms entre peticiones)
+      const now = Date.now();
+      if (now - lastQueryTimestamp < 800) {
+        return;
+      }
+      lastQueryTimestamp = now;
+
+      // 3. UI Estado de Carga
+      btnSubmit.disabled = true;
+      resultArea.innerHTML = `
+        <div class="loader-box">
+          <div class="spinner"></div>
+          <div class="loader-text">Localizando paquete <strong>${sanitizeString(cleanCode)}</strong>...</div>
+        </div>
+      `;
+
+      if (!sbClient) {
+        sbClient = initSupabase();
+      }
+
+      if (!sbClient) {
+        btnSubmit.disabled = false;
+        mostrarError('Error de Conexión', 'No se pudo conectar al sistema de seguimiento. Por favor intente más tarde.');
+        return;
+      }
+
+      try {
+        // Consulta segura y exclusiva: solo columnas no sensibles del paquete solicitado
+        const { data, error } = await sbClient
+          .from('v_encomiendas_detalle')
+          .select(`
+            codigo_rastreo,
+            tipo,
+            peso_kg,
+            descripcion,
+            estado,
+            fecha_registro,
+            fecha_entrega,
+            ciudad_origen,
+            ciudad_destino,
+            ruta_label,
+            unidad,
+            bus_nombre,
+            bus_codigo,
+            conductor_nombre,
+            hora_envio,
+            destinatario_nombre
+          `)
+          .eq('codigo_rastreo', cleanCode)
+          .maybeSingle();
+
+        btnSubmit.disabled = false;
+
+        if (error) {
+          console.error('Error de consulta:', error);
+          mostrarError('Error al consultar', 'Ocurrió un inconveniente al buscar los datos. Por favor verifica el código e inténtalo de nuevo.');
+          return;
+        }
+
+        if (!data) {
+          mostrarError('Encomienda no encontrada', `No encontramos ningún envío con el código <strong>${sanitizeString(cleanCode)}</strong>. Verifica que esté escrito exactamente como aparece en tu recibo de taquilla.`);
+          return;
+        }
+
+        // Guardar en búsquedas recientes
+        guardarReciente(cleanCode);
+        currentTrackingCode = cleanCode;
+
+        // Actualizar URL sin recargar para facilitar compartir el link
+        actualizarUrlConCodigo(cleanCode);
+
+        // Renderizar tarjeta de seguimiento enriquecida
+        renderTrackingResult(data);
+
+        // Suscribirse a actualizaciones en tiempo real
+        activarTiempoReal(cleanCode);
+
+      } catch (err) {
+        btnSubmit.disabled = false;
+        console.error('Excepción:', err);
+        mostrarError('Error de Red', 'Hubo un error de conexión al consultar el paquete. Revisa tu conexión a internet.');
+      }
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  RENDERIZADOR DE INTERFAZ DEL PAQUETE
+    // ════════════════════════════════════════════════════════
+    const ETAPAS = [
+      { key: 'Registrado', label: 'Registrado', desc: 'Paquete recibido y registrado en taquilla', icon: '📋' },
+      { key: 'En Tránsito', label: 'En Tránsito', desc: 'En viaje hacia el terminal de destino', icon: '🚌' },
+      { key: 'En Terminal', label: 'En Terminal', desc: 'Disponible para ser retirado en taquilla', icon: '🏢' },
+      { key: 'Entregado', label: 'Entregado', desc: 'Entregado satisfactoriamente al destinatario', icon: '✅' }
+    ];
+
+    function renderTrackingResult(enc) {
+      const resultArea = document.getElementById('result-area');
+      
+      const estadoActual = (enc.estado || 'Registrado').trim();
+      const estadoIndex = ETAPAS.findIndex(e => e.key.toLowerCase() === estadoActual.toLowerCase());
+      const safeIndex = estadoIndex >= 0 ? estadoIndex : 0;
+
+      // Calcular porcentaje de avance en la barra de ruta
+      const progressPercent = [15, 50, 85, 100][safeIndex] || 15;
+
+      // Sanitizar datos visibles
+      const code = sanitizeString(enc.codigo_rastreo);
+      const origen = sanitizeString(enc.ciudad_origen || 'Origen');
+      const destino = sanitizeString(enc.ciudad_destino || 'Destino');
+      const tipo = sanitizeString(enc.tipo || 'Paquete');
+      const peso = enc.peso_kg ? `${enc.peso_kg} kg` : 'Estándar';
+      const unidad = sanitizeString(enc.unidad || enc.bus_nombre || 'Asignada en ruta');
+      const conductor = enc.conductor_nombre ? sanitizeString(enc.conductor_nombre) : 'Asignado';
+      
+      // Privacidad: Enmascarar nombre del destinatario para mayor seguridad pública
+      const destinatarioEnmascarado = enmascararNombre(enc.destinatario_nombre || 'Destinatario');
+
+      // Fechas formateadas
+      const fechaRegistro = formatearFecha(enc.fecha_registro);
+      const horaEnvio = enc.hora_envio ? String(enc.hora_envio).substring(0, 5) : (enc.fecha_registro ? enc.fecha_registro.substring(11, 16) : '---');
+
+      // Clases del badge de estado
+      const badgeClassMap = {
+        'registrado': 'registrado',
+        'en tránsito': 'transito',
+        'en transito': 'transito',
+        'en terminal': 'terminal',
+        'entregado': 'entregado'
+      };
+      const badgeCls = badgeClassMap[estadoActual.toLowerCase()] || 'registrado';
+
+      // Construcción del Stepper
+      const stepsHtml = ETAPAS.map((etapa, idx) => {
+        let cls = '';
+        let iconToShow = etapa.icon;
+        if (idx < safeIndex) {
+          cls = 'completed';
+          iconToShow = '✓';
+        } else if (idx === safeIndex) {
+          cls = 'active';
+        }
+        return `
+          <div class="step-item ${cls}">
+            <div class="step-circle">${iconToShow}</div>
+            <div class="step-name">${etapa.label}</div>
+            <div class="step-desc">${etapa.desc}</div>
+          </div>
+        `;
+      }).join('');
+
+      // Enlace para compartir por WhatsApp
+      const shareUrl = encodeURIComponent(window.location.origin + window.location.pathname + '?codigo=' + code);
+      const shareText = encodeURIComponent(`Hola, aquí puedes consultar el rastreo en vivo de mi encomienda ${code} con Línea Los Andes:\n`);
+      const whatsappUrl = `https://wa.me/?text=${shareText}${shareUrl}`;
+
+      resultArea.innerHTML = `
+        <article class="tracking-card" id="tracking-card-content">
+          <!-- Barra Superior -->
+          <div class="card-top">
+            <div class="tracking-title-wrap">
+              <div class="package-summary-label">Número de Guía / Envío</div>
+              <div class="tracking-number-row">
+                <span class="tracking-code-pill">${code}</span>
+                <button type="button" class="btn-copy-code" onclick="copiarCodigo('${code}', this)">
+                  <span>📋</span>
+                  <span>Copiar</span>
+                </button>
+              </div>
+            </div>
+            <div class="status-badge ${badgeCls}">
+              <span>${ETAPAS[safeIndex]?.icon || '📦'}</span>
+              <span>${estadoActual}</span>
+            </div>
+          </div>
+
+          <!-- Ruta visual con progreso -->
+          <div class="route-visualizer">
+            <div class="route-header">
+              <span>Trayecto del Envío</span>
+              <span>Unidad: ${unidad}</span>
+            </div>
+            <div class="route-display">
+              <div class="route-city">
+                <span class="city-role">Origen</span>
+                <span class="city-name">${origen}</span>
+              </div>
+
+              <div class="route-track">
+                <div class="route-progress-fill" style="width: ${progressPercent}%;"></div>
+                <div class="route-bus-icon" style="left: ${progressPercent}%;">🚌</div>
+              </div>
+
+              <div class="route-city destination">
+                <span class="city-role">Destino</span>
+                <span class="city-name">${destino}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Línea de Tiempo / Pasos -->
+          <div class="stepper-section">
+            <div class="stepper">
+              ${stepsHtml}
+            </div>
+          </div>
+
+          <!-- Cuadrícula de Información Protegida -->
+          <div class="details-section">
+            <div class="info-card">
+              <span class="info-label">👤 Destinatario</span>
+              <span class="info-val">${destinatarioEnmascarado}</span>
+              <span class="info-sub">Entrega personal con C.I.</span>
+            </div>
+
+            <div class="info-card">
+              <span class="info-label">📦 Tipo de Carga</span>
+              <span class="info-val">${tipo} (${peso})</span>
+              <span class="info-sub">${enc.descripcion ? sanitizeString(enc.descripcion) : 'Carga asegurada'}</span>
+            </div>
+
+            <div class="info-card">
+              <span class="info-label">🚌 Transporte Asignado</span>
+              <span class="info-val">${unidad}</span>
+              <span class="info-sub">Operador: ${conductor}</span>
+            </div>
+
+            <div class="info-card">
+              <span class="info-label">📅 Fecha de Salida / Registro</span>
+              <span class="info-val">${fechaRegistro}</span>
+              <span class="info-sub">Hora estimada: ${horaEnvio}</span>
+            </div>
+          </div>
+
+          <!-- Acciones y Estado en Vivo -->
+          <div class="card-actions">
+            <div class="realtime-status">
+              <span class="realtime-indicator"></span>
+              <span>Monitoreo en tiempo real activo</span>
+            </div>
+            <div class="action-buttons">
+              <button type="button" class="btn-action" onclick="copiarEnlaceRastreo('${code}', this)">
+                <span>🔗 Compartir Enlace</span>
+              </button>
+              <a href="${whatsappUrl}" target="_blank" rel="noopener noreferrer" class="btn-action btn-whatsapp">
+                <span>💬 Enviar por WhatsApp</span>
+              </a>
+            </div>
+          </div>
+        </article>
+      `;
+
+      // Scroll suave hacia el resultado si es necesario
+      resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  TIEMPO REAL (SUPABASE REALTIME)
+    // ════════════════════════════════════════════════════════
+    function activarTiempoReal(code) {
+      if (!sbClient) return;
+
+      // Desuscribir canal previo
+      if (realtimeSubscription) {
+        sbClient.removeChannel(realtimeSubscription);
+      }
+
+      try {
+        realtimeSubscription = sbClient
+          .channel(`public:tracking:${code}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'encomienda',
+              filter: `codigo_rastreo=eq.${code}`
+            },
+            payload => {
+              console.log('⚡ Actualización en tiempo real recibida:', payload);
+              if (payload.new && payload.new.estado) {
+                mostrarNotificacionEnVivo(`¡Actualización en vivo! Estado: ${payload.new.estado}`);
+                // Volver a consultar datos completos actualizados
+                ejecutarRastreo();
+              }
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.warn('Realtime no disponible en este cliente:', err);
+      }
+    }
+
+    function mostrarNotificacionEnVivo(msg) {
+      const toast = document.getElementById('live-toast');
+      const toastMsg = document.getElementById('live-toast-msg');
+      toastMsg.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 5000);
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  HELPERS DE SEGURIDAD, ENMASCARAMIENTO Y UTILIDADES
+    // ════════════════════════════════════════════════════════
+    function sanitizeString(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Enmascara nombres como "Carlos Mendoza" -> "Carlos M. (Protegido)"
+    function enmascararNombre(nombreCompleto) {
+      if (!nombreCompleto) return 'Destinatario';
+      const partes = nombreCompleto.trim().split(/\s+/);
+      if (partes.length === 1) {
+        const p = partes[0];
+        return p.length > 2 ? `${p.substring(0, 2)}***` : p;
+      }
+      const primerNombre = partes[0];
+      const inicialApellido = partes[1] ? partes[1].charAt(0) + '.' : '';
+      return `${primerNombre} ${inicialApellido}`;
+    }
+
+    function formatearFecha(fechaStr) {
+      if (!fechaStr) return '---';
+      try {
+        const d = new Date(fechaStr);
+        if (isNaN(d.getTime())) return fechaStr.split('T')[0] || fechaStr;
+        return d.toLocaleDateString('es-VE', { 
+          day: '2-digit', 
+          month: 'short', 
+          year: 'numeric' 
+        });
+      } catch (e) {
+        return fechaStr;
+      }
+    }
+
+    function mostrarError(titulo, mensaje) {
+      const resultArea = document.getElementById('result-area');
+      resultArea.innerHTML = `
+        <div class="alert-box">
+          <div class="alert-icon">⚠️</div>
+          <h3>${sanitizeString(titulo)}</h3>
+          <p>${mensaje}</p>
+          <div class="alert-tip">Consejo: Revisa que el código incluya guiones si corresponde (Ej. ENC-12345)</div>
+        </div>
+      `;
+    }
+
+    function copiarCodigo(texto, btn) {
+      navigator.clipboard.writeText(texto).then(() => {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span>✅</span><span>¡Copiado!</span>';
+        setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+      }).catch(() => {
+        alert('Código: ' + texto);
+      });
+    }
+
+    function copiarEnlaceRastreo(code, btn) {
+      const url = window.location.origin + window.location.pathname + '?codigo=' + encodeURIComponent(code);
+      navigator.clipboard.writeText(url).then(() => {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span>✅</span><span>¡Enlace Copiado!</span>';
+        setTimeout(() => { btn.innerHTML = originalText; }, 2200);
+      }).catch(() => {
+        alert('Enlace: ' + url);
+      });
+    }
+
+    function actualizarUrlConCodigo(code) {
+      try {
+        const url = new URL(window.location);
+        url.searchParams.set('codigo', code);
+        window.history.replaceState({}, '', url);
+      } catch (e) {}
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  LECTURA DE PARÁMETROS URL (?codigo=ENC-12345)
+    // ════════════════════════════════════════════════════════
+    function verificarParametroUrl() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('codigo') || params.get('c') || params.get('track');
+        if (code) {
+          trackInput.value = code.trim().toUpperCase();
+          btnClear.style.display = 'block';
+          ejecutarRastreo();
+        }
+      } catch (e) {}
+    }
+
+    // ════════════════════════════════════════════════════════
+    //  INICIO DE LA PÁGINA
+    // ════════════════════════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', () => {
+      cargarRecientes();
+      verificarParametroUrl();
+      trackInput.focus();
+    });
+  </script>
+</body>
+</html>

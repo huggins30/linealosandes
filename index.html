@@ -147,6 +147,9 @@
   .input-icon-wrap input{padding-right:36px}
   .input-icon-wrap .icon-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text2);cursor:pointer;font-size:.85rem;padding:2px}
   .input-icon-wrap .icon-btn:hover{color:var(--accent)}
+  .badge-encontrado{display:inline-flex;align-items:center;gap:4px;background:rgba(61,214,140,.18);color:var(--ok);border:1px solid rgba(61,214,140,.35);font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:99px;text-transform:none;letter-spacing:0;margin-left:8px;animation:fadeIn .3s ease}
+  .field-autocompleted{animation:flashSuccess 1.2s ease}
+  @keyframes flashSuccess{0%{box-shadow:0 0 0 3px rgba(61,214,140,.45);border-color:var(--ok)}100%{box-shadow:none}}
 
   /* ── COST BOX ── */
   .cost-box{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:7px}
@@ -464,6 +467,7 @@
     <button class="nav-item" onclick="navigate('registro',this)"><span class="icon">&#x1F4E6;</span> Registrar Encomienda</button>
     <button class="nav-item" onclick="navigate('seguimiento',this)"><span class="icon">&#x1F50D;</span> Seguimiento</button>
     <button class="nav-item" onclick="navigate('tabla',this)"><span class="icon">&#x1F4CB;</span> Tabla General</button>
+    <a href="rastreo.html" target="_blank" class="nav-item" style="color:var(--accent3);text-decoration:none" title="Abrir página externa para clientes"><span class="icon">&#x1F310;</span> Portal Clientes &#x2197;</a>
   </nav>
   <div class="sidebar-user">
     <div class="user-avatar" id="user-avatar">?</div>
@@ -561,23 +565,38 @@
   <div id="view-registro" class="view">
     <div class="page-header"><h2>Registrar Encomienda</h2><p>Complete el formulario para registrar un nuevo env&#xED;o</p></div>
     <div class="card" style="padding:26px;position:relative">
-      <p class="form-section-label">Remitente</p>
+      <p class="form-section-label">Remitente <span id="r-badge-encontrado" class="badge-encontrado" style="display:none">&#x2713; Registrado</span></p>
       <div class="form-grid">
         <div class="form-group"><label>Cédula / DNI / RIF</label>
-          <div class="input-icon-wrap"><input id="r-cedula" placeholder="V-12345678" onblur="lookupPersona('r')"><button class="icon-btn" onclick="lookupPersona('r')" title="Buscar">🔍</button></div>
-          <span class="field-hint">Ingrese la cédula y presione Tab para buscar</span>
+          <div class="input-icon-wrap">
+            <input id="r-cedula" list="lista-cedulas-r" placeholder="V-12345678" autocomplete="off" onblur="lookupPersona('r', false)" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupPersona('r', true);}">
+            <datalist id="lista-cedulas-r"></datalist>
+            <button class="icon-btn" type="button" onclick="lookupPersona('r', true)" title="Buscar Cédula">&#x1F50D;</button>
+          </div>
+          <span class="field-hint" id="r-hint">Escribe la cédula o nombre para autocompletar</span>
         </div>
-        <div class="form-group"><label>Nombre completo</label><input id="r-nombre" placeholder="Nombre y apellido"></div>
+        <div class="form-group"><label>Nombre completo</label>
+          <input id="r-nombre" list="lista-nombres-r" placeholder="Nombre y apellido" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupPersonaNombre('r', true);}">
+          <datalist id="lista-nombres-r"></datalist>
+        </div>
         <div class="form-group"><label>Teléfono</label><input id="r-telefono" placeholder="+58 412 000 0000"></div>
         <div class="form-group"><label>Domicilio Fiscal</label><input id="r-domicilio" placeholder="Av. Principal, Edif., Piso, Local..."></div>
       </div>
       <hr class="section-sep">
-      <p class="form-section-label">Destinatario</p>
+      <p class="form-section-label">Destinatario <span id="d-badge-encontrado" class="badge-encontrado" style="display:none">&#x2713; Registrado</span></p>
       <div class="form-grid">
         <div class="form-group"><label>Cédula / DNI / RIF</label>
-          <div class="input-icon-wrap"><input id="d-cedula" placeholder="V-87654321" onblur="lookupPersona('d')"><button class="icon-btn" onclick="lookupPersona('d')" title="Buscar">🔍</button></div>
+          <div class="input-icon-wrap">
+            <input id="d-cedula" list="lista-cedulas-d" placeholder="V-87654321" autocomplete="off" onblur="lookupPersona('d', false)" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupPersona('d', true);}">
+            <datalist id="lista-cedulas-d"></datalist>
+            <button class="icon-btn" type="button" onclick="lookupPersona('d', true)" title="Buscar Cédula">&#x1F50D;</button>
+          </div>
+          <span class="field-hint" id="d-hint">Escribe la cédula o nombre para autocompletar</span>
         </div>
-        <div class="form-group"><label>Nombre completo</label><input id="d-nombre" placeholder="Nombre y apellido"></div>
+        <div class="form-group"><label>Nombre completo</label>
+          <input id="d-nombre" list="lista-nombres-d" placeholder="Nombre y apellido" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();lookupPersonaNombre('d', true);}">
+          <datalist id="lista-nombres-d"></datalist>
+        </div>
         <div class="form-group"><label>Teléfono</label><input id="d-telefono" placeholder="+58 424 000 0000"></div>
         <div class="form-group"><label>Domicilio Fiscal</label><input id="d-domicilio" placeholder="Calle, Centro Comercial, Residencia..."></div>
       </div>
@@ -634,7 +653,15 @@
 
   <!-- SEGUIMIENTO -->
   <div id="view-seguimiento" class="view">
-    <div class="page-header"><h2>Seguimiento y Control</h2><p>Busque una encomienda por su c&#xF3;digo de rastreo</p></div>
+    <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+      <div>
+        <h2>Seguimiento y Control</h2>
+        <p>Busque una encomienda por su c&#xF3;digo de rastreo</p>
+      </div>
+      <a href="rastreo.html" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+        &#x1F310; Portal Clientes (Rastreo Externo) &#x2197;
+      </a>
+    </div>
     <div class="search-bar">
       <input id="track-input" placeholder="Ingrese c&#xF3;digo ENC-XXXXX..." onkeydown="if(event.key==='Enter')buscarEncomienda()">
       <button class="btn btn-primary" onclick="buscarEncomienda()">&#x1F50D; Buscar</button>
@@ -998,7 +1025,7 @@ function updateUserDisplay() {
 //  LOAD DATA (Supabase)
 // ════════════════════════════════════════════════════════
 async function loadAllData() {
-  await Promise.all([loadViajesSelect(), loadBusesFilter(), loadUnidadesDatalist()]);
+  await Promise.all([loadViajesSelect(), loadBusesFilter(), loadUnidadesDatalist(), loadPersonasCache()]);
 }
 
 // Carga las unidades registradas en el módulo Unidades para el campo del formulario
@@ -1124,23 +1151,244 @@ function renderRecentTable(rows) {
 }
 
 // ════════════════════════════════════════════════════════
-//  REGISTRO — Formulario
+//  PERSONAS — AUTOCOMPLETADO INTELIGENTE (REMITENTE Y DESTINATARIO)
 // ════════════════════════════════════════════════════════
-async function lookupPersona(prefix) {
-  const cedula = document.getElementById(prefix + '-cedula').value.trim();
-  if (!cedula || !sb) return;
-  const { data } = await sb.from('persona')
-    .select('nombres, apellidos, telefono, domicilio_fiscal')
-    .eq('cedula', cedula)
-    .maybeSingle();
-  if (data) {
-    document.getElementById(prefix + '-nombre').value   = (data.nombres + ' ' + (data.apellidos || '')).trim();
-    document.getElementById(prefix + '-telefono').value = data.telefono || '';
-    if (data.domicilio_fiscal) {
-      document.getElementById(prefix + '-domicilio').value = data.domicilio_fiscal;
+let personasCache = [];
+let debounceLookupTimer = {};
+
+async function loadPersonasCache() {
+  if (!sb) return;
+  try {
+    const { data, error } = await sb.from('persona')
+      .select('id, cedula, nombres, apellidos, telefono, domicilio_fiscal')
+      .order('nombres')
+      .limit(500);
+    if (!error && data) {
+      personasCache = data;
+      updatePersonasDatalists();
     }
-    toast('Persona encontrada en el sistema', 'info');
+  } catch (e) {
+    console.warn('Error cargando personas en caché:', e);
   }
+}
+
+function updatePersonasDatalists() {
+  ['r', 'd'].forEach(prefix => {
+    const dlCed = document.getElementById(`lista-cedulas-${prefix}`);
+    const dlNom = document.getElementById(`lista-nombres-${prefix}`);
+    if (dlCed) {
+      dlCed.innerHTML = personasCache.map(p => {
+        const nom = ((p.nombres || '') + ' ' + (p.apellidos || '')).trim();
+        return `<option value="${p.cedula}">${nom}</option>`;
+      }).join('');
+    }
+    if (dlNom) {
+      dlNom.innerHTML = personasCache.map(p => {
+        const nom = ((p.nombres || '') + ' ' + (p.apellidos || '')).trim();
+        return `<option value="${nom}">C.I: ${p.cedula}${p.telefono ? ' · ' + p.telefono : ''}</option>`;
+      }).join('');
+    }
+  });
+}
+
+// Búsqueda inteligente por cédula (con o sin prefijos V-, E-, J-, etc.) o por nombre
+async function buscarPersonaEnBD(query) {
+  if (!query) return null;
+  const qClean = query.trim();
+  const qLower = qClean.toLowerCase();
+  const digits = qClean.replace(/\D/g, '');
+
+  // 1. Buscar primero en caché de memoria (instantáneo, 0 latencia)
+  let found = personasCache.find(p => {
+    const pCed = (p.cedula || '').toLowerCase().trim();
+    const pDigits = pCed.replace(/\D/g, '');
+    const pNom = `${p.nombres || ''} ${p.apellidos || ''}`.toLowerCase().trim();
+
+    if (pCed === qLower) return true;
+    if (digits && pDigits === digits && digits.length >= 4) return true;
+    if (pNom === qLower) return true;
+    return false;
+  });
+  if (found) return found;
+
+  // 2. Si no está en memoria, consultar a la base de datos de Supabase
+  if (!sb) return null;
+
+  try {
+    // 2.1 Búsqueda directa por cédula
+    let { data } = await sb.from('persona')
+      .select('id, cedula, nombres, apellidos, telefono, domicilio_fiscal')
+      .ilike('cedula', qClean)
+      .limit(1)
+      .maybeSingle();
+
+    // 2.2 Si no encuentra y tiene dígitos, buscar por coincidencia de números
+    if (!data && digits.length >= 4) {
+      const res = await sb.from('persona')
+        .select('id, cedula, nombres, apellidos, telefono, domicilio_fiscal')
+        .ilike('cedula', `%${digits}%`)
+        .limit(1)
+        .maybeSingle();
+      data = res.data;
+    }
+
+    // 2.3 Si no encuentra por cédula, intentar por nombre
+    if (!data && qClean.length >= 3 && isNaN(qClean)) {
+      const res = await sb.from('persona')
+        .select('id, cedula, nombres, apellidos, telefono, domicilio_fiscal')
+        .or(`nombres.ilike.%${qClean}%,apellidos.ilike.%${qClean}%`)
+        .limit(1)
+        .maybeSingle();
+      data = res.data;
+    }
+
+    if (data) {
+      if (!personasCache.some(p => p.id === data.id)) {
+        personasCache.push(data);
+        updatePersonasDatalists();
+      }
+      return data;
+    }
+  } catch (err) {
+    console.warn('Error al consultar persona en Supabase:', err);
+  }
+
+  return null;
+}
+
+// Aplica y autocompleta los campos del formulario con animación visual
+function aplicarDatosPersona(prefix, persona, mostrarNotif = false) {
+  if (!persona) return false;
+
+  const nombreInput    = document.getElementById(prefix + '-nombre');
+  const cedulaInput    = document.getElementById(prefix + '-cedula');
+  const telInput       = document.getElementById(prefix + '-telefono');
+  const domicilioInput = document.getElementById(prefix + '-domicilio');
+  const badge          = document.getElementById(prefix + '-badge-encontrado');
+
+  const nombreCompleto = ((persona.nombres || '') + ' ' + (persona.apellidos || '')).trim();
+
+  // Autocompletar Cédula si está vacía o se buscó por nombre
+  if (cedulaInput && (!cedulaInput.value.trim() || cedulaInput.value.trim().length < 5)) {
+    cedulaInput.value = persona.cedula || '';
+  }
+
+  // Autocompletar Nombre completo
+  if (nombreInput && nombreCompleto) {
+    nombreInput.value = nombreCompleto;
+    nombreInput.classList.remove('field-autocompleted');
+    void nombreInput.offsetWidth;
+    nombreInput.classList.add('field-autocompleted');
+  }
+
+  // Autocompletar Teléfono
+  if (telInput && persona.telefono) {
+    telInput.value = persona.telefono;
+    telInput.classList.remove('field-autocompleted');
+    void telInput.offsetWidth;
+    telInput.classList.add('field-autocompleted');
+  }
+
+  // Autocompletar Domicilio Fiscal
+  if (domicilioInput && persona.domicilio_fiscal) {
+    domicilioInput.value = persona.domicilio_fiscal;
+    domicilioInput.classList.remove('field-autocompleted');
+    void domicilioInput.offsetWidth;
+    domicilioInput.classList.add('field-autocompleted');
+  }
+
+  // Mostrar indicador visual "✓ Registrado"
+  if (badge) {
+    badge.style.display = 'inline-flex';
+    badge.textContent = '✓ Registrado';
+    badge.title = `Cliente registrado: ${nombreCompleto} (${persona.cedula})`;
+  }
+
+  if (mostrarNotif) {
+    toast(`👤 Datos de "${nombreCompleto}" autocompletados`, 'info');
+  }
+  return true;
+}
+
+// Autocompletar al ingresar Cédula
+async function lookupPersona(prefix, manual = false) {
+  const cedulaVal = document.getElementById(prefix + '-cedula')?.value.trim();
+  const badge     = document.getElementById(prefix + '-badge-encontrado');
+
+  if (!cedulaVal) {
+    if (badge) badge.style.display = 'none';
+    return;
+  }
+
+  const p = await buscarPersonaEnBD(cedulaVal);
+  if (p) {
+    aplicarDatosPersona(prefix, p, manual);
+  } else {
+    if (badge) badge.style.display = 'none';
+    if (manual) {
+      toast('ℹ️ Cédula no registrada aún. Ingrese los datos para registrar al cliente.', 'info');
+    }
+  }
+}
+
+// Autocompletar al ingresar Nombre
+async function lookupPersonaNombre(prefix, manual = false) {
+  const nombreVal = document.getElementById(prefix + '-nombre')?.value.trim();
+  const badge     = document.getElementById(prefix + '-badge-encontrado');
+
+  if (!nombreVal || nombreVal.length < 3) return;
+
+  const p = await buscarPersonaEnBD(nombreVal);
+  if (p) {
+    aplicarDatosPersona(prefix, p, manual);
+  } else {
+    if (manual && !p) {
+      toast('ℹ️ Cliente nuevo. Ingrese cédula y teléfono para registrar.', 'info');
+    }
+  }
+}
+
+// Conectar eventos en tiempo real mientras el usuario escribe
+function initPersonaAutocomplete() {
+  ['r', 'd'].forEach(prefix => {
+    const cedulaInp = document.getElementById(prefix + '-cedula');
+    const nombreInp = document.getElementById(prefix + '-nombre');
+
+    if (cedulaInp) {
+      cedulaInp.addEventListener('input', () => {
+        clearTimeout(debounceLookupTimer[prefix]);
+        const val = cedulaInp.value.trim();
+        const digits = val.replace(/\D/g, '');
+        if (digits.length >= 5 || val.length >= 6) {
+          debounceLookupTimer[prefix] = setTimeout(() => {
+            lookupPersona(prefix, false);
+          }, 300);
+        } else {
+          const badge = document.getElementById(prefix + '-badge-encontrado');
+          if (badge) badge.style.display = 'none';
+        }
+      });
+
+      cedulaInp.addEventListener('change', () => {
+        lookupPersona(prefix, false);
+      });
+    }
+
+    if (nombreInp) {
+      nombreInp.addEventListener('change', () => {
+        lookupPersonaNombre(prefix, false);
+      });
+      nombreInp.addEventListener('input', () => {
+        clearTimeout(debounceLookupTimer[prefix + '_nom']);
+        const val = nombreInp.value.trim();
+        if (val.length >= 3) {
+          debounceLookupTimer[prefix + '_nom'] = setTimeout(() => {
+            lookupPersonaNombre(prefix, false);
+          }, 400);
+        }
+      });
+    }
+  });
 }
 
 // Búsqueda automática de conductor por cédula
@@ -1266,6 +1514,10 @@ function resetForm() {
   if (condNombre) delete condNombre.dataset.conductorId;
   const unidadInput = document.getElementById('e-unidad');
   if (unidadInput) delete unidadInput.dataset.autoFilled;
+  ['r-badge-encontrado','d-badge-encontrado'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
   document.getElementById('e-tipo').value  = 'Caja';
   document.getElementById('cargo-warning').style.display = 'none';
   document.getElementById('cargo-error').style.display   = 'none';
@@ -1442,6 +1694,18 @@ async function registrarSupabase({
 
   let { data: enc, error } = await sb.from('encomienda').insert(insertPayload).select('id').single();
 
+  // Si falla por restricción de llave foránea en conductor_id (ej. proviene de tabla chofer), reintentar sin conductor_id
+  if (error && (error.message?.includes('encomienda_conductor_id_fkey') || error.message?.includes('foreign key') || error.code === '23503')) {
+    console.warn('Restricción de llave foránea en conductor_id detectada. Reintentando registro...', error);
+    const retryPayload = { ...insertPayload };
+    delete retryPayload.conductor_id;
+    const resRetry = await sb.from('encomienda').insert(retryPayload).select('id').single();
+    if (!resRetry.error) {
+      enc = resRetry.data;
+      error = null;
+    }
+  }
+
   // Si aún no se han aplicado las nuevas columnas en la tabla encomienda, realizar inserción de respaldo
   if (error && (error.message?.includes('column') || error.code === '42703' || error.code === 'PGRST204')) {
     console.warn('Columnas nuevas no detectadas en tabla encomienda. Insertando versión básica...', error);
@@ -1481,6 +1745,7 @@ async function registrarSupabase({
   toast(`✅ Encomienda ${codigo} registrada exitosamente!`, 'success');
   resetForm();
   await loadViajesSelect(); // Refresh bodega
+  loadPersonasCache();
   renderDashboard();
 }
 
@@ -1549,7 +1814,12 @@ function buildTrackingCard(enc) {
       <div class="detail-item"><label>Registro</label><p>${enc.fecha_registro?.split('T')[0]||''}</p></div>
       <div class="detail-item"><label>Total</label><p style="color:var(--ok);font-weight:700">$${(+enc.total).toFixed(2)}</p></div>
     </div>
-    <div class="tracking-actions">${btn}</div>
+    <div class="tracking-actions" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>${btn}</div>
+      <a href="rastreo.html?codigo=${encodeURIComponent(enc.codigo_rastreo)}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">
+        &#x1F310; Ver como Cliente &#x2197;
+      </a>
+    </div>
   </div>`;
 }
 
@@ -1959,7 +2229,7 @@ function navigate(view, el) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('view-' + view).classList.add('active');
   if (el) el.classList.add('active');
-  if (view === 'registro')    { loadUnidadesDatalist(); setCurrentTimeInput(); }
+  if (view === 'registro')    { loadUnidadesDatalist(); loadPersonasCache(); setCurrentTimeInput(); }
   if (view === 'dashboard')   renderDashboard();
   if (view === 'seguimiento') renderPending();
   if (view === 'tabla')       renderTabla();
@@ -2070,6 +2340,7 @@ window.addEventListener('scroll', () => {
 
 // ── Boot
 setCurrentTimeInput();
+initPersonaAutocomplete();
 init();
 </script>
 </body>
